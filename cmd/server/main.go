@@ -19,10 +19,13 @@ var (
 )
 
 func main() {
+	// Initialize the config package
 	err := config.Init("dclock")
 	if err != nil {
 		fmt.Println("config initialization had error:", err)
 	}
+
+	// Set the flags as config parameters
 	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("serverID", tools.RandomID(12), ""))
 	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("gatewayListen", "0.0.0.0:80", ""))
 	config.SetCmdPersistentFlags(RootCmd, config.StringSliceFlag("gatewayAdvertiseUrl", nil, ""))
@@ -35,6 +38,8 @@ func main() {
 	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("dataPath", "./_hdd", ""))
 	config.SetCmdPersistentFlags(RootCmd, config.BoolFlag("bootstrap", false, ""))
 
+
+	// Execute the cli command
 	err = RootCmd.Execute()
 	if err != nil {
 		fmt.Println("we got error:", err)
@@ -44,11 +49,14 @@ func main() {
 var RootCmd = &cobra.Command{
 	Use: "dclock",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Bind the current flags to registered flags in config package
 		err := config.BindCmdFlags(cmd)
 		if err != nil {
 
 			return err
 		}
+
+		// Instantiate the edge server
 		edgeServer = edge.NewServer(
 			config.GetString("serverID"),
 			edge.WithTcpGateway(edge.TcpGatewayConfig{
