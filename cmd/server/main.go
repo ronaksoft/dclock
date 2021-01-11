@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony/cluster"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
@@ -17,8 +19,11 @@ var (
 )
 
 func main() {
-	config.MustInit("dclock")
-	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("serverID", "", ""))
+	err := config.Init("dclock")
+	if err != nil {
+		fmt.Println("config initialization had error:", err)
+	}
+	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("serverID", tools.RandomID(12), ""))
 	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("gatewayListen", "0.0.0.0:80", ""))
 	config.SetCmdPersistentFlags(RootCmd, config.StringSliceFlag("gatewayAdvertiseUrl", nil, ""))
 	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("tunnelListen", "0.0.0.0:81", ""))
@@ -29,12 +34,21 @@ func main() {
 	config.SetCmdPersistentFlags(RootCmd, config.IntFlag("gossipPort", 7081, ""))
 	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("dataPath", "./_hdd", ""))
 	config.SetCmdPersistentFlags(RootCmd, config.BoolFlag("bootstrap", false, ""))
-	_ = RootCmd.Execute()
+
+	err = RootCmd.Execute()
+	if err != nil {
+		fmt.Println("we got error:", err)
+	}
 }
 
 var RootCmd = &cobra.Command{
 	Use: "dclock",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		err := config.BindCmdFlags(cmd)
+		if err != nil {
+
+			return err
+		}
 		edgeServer = edge.NewServer(
 			config.GetString("serverID"),
 			edge.WithTcpGateway(edge.TcpGatewayConfig{
@@ -61,10 +75,14 @@ var RootCmd = &cobra.Command{
 			}),
 		)
 
+		// Register the service into the edge server
+		service.RegisterClock(&service.Clock{}, edgeServer)
+
 		// Start the edge server components
 		edgeServer.Start()
 
 		// Wait until a shutdown signal received.
 		edgeServer.ShutdownWithSignal(os.Kill, os.Interrupt)
+		return nil
 	},
 }
