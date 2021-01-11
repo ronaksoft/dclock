@@ -1,0 +1,26 @@
+syntax = "proto3";
+package service;
+option go_package = "github.com/ronaksoft/dclock/service";
+
+service Clock {
+    rpc HookSet (HookSetRequest) returns (HookSetResponse);
+    rpc HookDelete (HookDeleteRequest) returns (HookDeleteResponse);
+}
+
+message HookSetRequest {
+    string UniqueID = 1;
+    string Timestamp = 2; // UTC unix epoch time
+    string HookUrl = 3;
+}
+
+message HookSetResponse {
+    bool Successful = 1;
+}
+
+message HookDeleteRequest {
+    string UniqueID = 1;
+}
+
+message HookDeleteResponse {
+    bool Successful = 1;
+}
