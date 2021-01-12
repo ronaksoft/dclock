@@ -27,7 +27,8 @@ func (p *poolHook) Put(x *Hook) {
 	x.ClientID = ""
 	x.ID = ""
 	x.Timestamp = 0
-	x.HookUrl = ""
+	x.CallbackUrl = ""
+	x.JsonData = ""
 	x.Fired = false
 	x.Success = false
 	p.pool.Put(x)
@@ -43,7 +44,8 @@ func (x *Hook) DeepCopy(z *Hook) {
 	z.ClientID = x.ClientID
 	z.ID = x.ID
 	z.Timestamp = x.Timestamp
-	z.HookUrl = x.HookUrl
+	z.CallbackUrl = x.CallbackUrl
+	z.JsonData = x.JsonData
 	z.Fired = x.Fired
 	z.Success = x.Success
 }
@@ -70,7 +72,7 @@ func SaveHook(m *Hook) error {
 			return err
 		}
 
-		err = txn.Set(alloc.GenKey(C_Hook, 507389681, m.HookUrl, m.ID), b)
+		err = txn.Set(alloc.GenKey(C_Hook, 3583556648, m.CallbackUrl, m.ID), b)
 		if err != nil {
 			return err
 		}
@@ -93,11 +95,11 @@ func ReadHook(m *Hook) error {
 	})
 }
 
-func ReadHookByHookUrlAndID(m *Hook) error {
+func ReadHookByCallbackUrlAndID(m *Hook) error {
 	alloc := kv.NewAllocator()
 	defer alloc.ReleaseAll()
 	return kv.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(alloc.GenKey(C_Hook, 507389681, m.HookUrl, m.ID))
+		item, err := txn.Get(alloc.GenKey(C_Hook, 3583556648, m.CallbackUrl, m.ID))
 		if err != nil {
 			return err
 		}
@@ -116,7 +118,7 @@ func DeleteHook(m *Hook) error {
 			return err
 		}
 
-		err = txn.Delete(alloc.GenKey(C_Hook, 507389681, m.HookUrl, m.ID))
+		err = txn.Delete(alloc.GenKey(C_Hook, 3583556648, m.CallbackUrl, m.ID))
 		if err != nil {
 			return err
 		}

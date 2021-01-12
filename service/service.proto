@@ -11,6 +11,7 @@ message HookSetRequest {
     string UniqueID = 1;
     int64 Timestamp = 2; // UTC unix epoch time
     string HookUrl = 3;
+    string HookJsonData = 4;
 }
 
 message HookSetResponse {

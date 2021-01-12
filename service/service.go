@@ -7,6 +7,7 @@ import (
 	"github.com/ronaksoft/rony/edge"
 	"github.com/ronaksoft/rony/tools"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -29,12 +30,13 @@ type Clock struct{}
 
 func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse) {
 	h := &model.Hook{
-		ClientID:  "",
-		ID:        req.GetUniqueID(),
-		Timestamp: req.GetTimestamp(),
-		HookUrl:   req.GetHookUrl(),
-		Fired:     false,
-		Success:   false,
+		ClientID:    "",
+		ID:          req.GetUniqueID(),
+		Timestamp:   req.GetTimestamp(),
+		CallbackUrl: req.GetHookUrl(),
+		JsonData:    req.GetHookJsonData(),
+		Fired:       false,
+		Success:     false,
 	}
 	err := model.SaveHook(h)
 	if err != nil {
@@ -53,8 +55,7 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println("Hook", h.ID, h.HookUrl, h.ClientID, h.Fired)
-		_, err := http.DefaultClient.Post(h.HookUrl, "application/json", nil)
+		_, err := http.DefaultClient.Post(h.GetCallbackUrl(), "application/json", strings.NewReader(h.GetJsonData()))
 		if err != nil {
 			fmt.Println("Error:", err)
 		}

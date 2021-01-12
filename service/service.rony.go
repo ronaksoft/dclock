@@ -28,6 +28,7 @@ func (p *poolHookSetRequest) Put(x *HookSetRequest) {
 	x.UniqueID = ""
 	x.Timestamp = 0
 	x.HookUrl = ""
+	x.HookJsonData = ""
 	p.pool.Put(x)
 }
 
@@ -109,6 +110,7 @@ func (x *HookSetRequest) DeepCopy(z *HookSetRequest) {
 	z.UniqueID = x.UniqueID
 	z.Timestamp = x.Timestamp
 	z.HookUrl = x.HookUrl
+	z.HookJsonData = x.HookJsonData
 }
 
 func (x *HookSetResponse) DeepCopy(z *HookSetResponse) {

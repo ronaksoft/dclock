@@ -8,12 +8,13 @@ option (rony_storage) = "local";
 message Hook {
     option (rony_model) = true;
     option (rony_table) = "(ClientID, ID)";
-    option (rony_view) = "(HookUrl, ID)";
+    option (rony_view) = "(CallbackUrl, ID)";
     string ClientID = 1;
     string ID = 2;
     int64 Timestamp = 3; // UTC unix epoch time
-    string HookUrl = 4;
-    bool Fired = 5;
-    bool Success = 6;
+    string CallbackUrl = 4;
+    string JsonData = 5;
+    bool Fired = 6;
+    bool Success = 7;
 }
 
