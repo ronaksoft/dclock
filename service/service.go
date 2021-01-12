@@ -42,7 +42,7 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		return
 	}
 
-	waitTime := time.Duration(tools.TimeUnix()-req.GetTimestamp()) * time.Second
+	waitTime := time.Duration(req.GetTimestamp()-tools.TimeUnix()) * time.Second
 	go func(hookID string, waitTime time.Duration) {
 		time.Sleep(waitTime)
 		h := &model.Hook{
@@ -53,9 +53,10 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		if err != nil {
 			fmt.Println(err)
 		}
+		fmt.Println("Hook", h.ID, h.HookUrl, h.ClientID, h.Fired)
 		_, err := http.DefaultClient.Post(h.HookUrl, "application/json", nil)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Error:", err)
 		}
 	}(req.GetUniqueID(), waitTime)
 	res.Successful = true

@@ -6,10 +6,12 @@ import (
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
 	"github.com/ronaksoft/rony/gateway"
+	"github.com/ronaksoft/rony/repo/kv"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
 	"os"
 	"runtime"
+	"time"
 )
 
 /*
@@ -30,6 +32,12 @@ var ServerCmd = &cobra.Command{
 
 			return err
 		}
+
+		kv.MustInit(kv.Config{
+			DirPath:             config.GetString("dataPath"),
+			ConflictRetries:     100,
+			ConflictMaxInterval: time.Millisecond,
+		})
 
 		// Instantiate the edge server
 		edgeServer = edge.NewServer(

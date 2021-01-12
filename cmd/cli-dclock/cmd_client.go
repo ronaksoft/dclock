@@ -5,7 +5,6 @@ import (
 	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edgec"
-	"github.com/ronaksoft/rony/repo/kv"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
 )
@@ -34,19 +33,14 @@ func prepareCmd(cmd *cobra.Command) (*service.ClockClient, error) {
 	}
 
 	cmd.Println(config.GetString("dataPath"), config.GetString("host"), config.GetInt("port"))
-	kv.MustInit(kv.Config{
-		DirPath:             config.GetString("dataPath"),
-		ConflictRetries:     0,
-		ConflictMaxInterval: 0,
-	})
 
 	wsC := edgec.NewWebsocket(edgec.WebsocketConfig{
 		SeedHostPort: fmt.Sprintf("%s:%d", config.GetString("host"), config.GetInt("port")),
 		Header: map[string]string{
 			"APIKEY": "",
 		},
-		Router:  nil,
-		Secure:  false,
+		Router: nil,
+		Secure: false,
 	})
 
 	err = wsC.Start()
@@ -67,7 +61,7 @@ var HookSetCmd = &cobra.Command{
 		}
 		req := &service.HookSetRequest{
 			UniqueID:  tools.RandomID(32),
-			Timestamp: tools.TimeUnix() + 60,
+			Timestamp: tools.TimeUnix() + 30,
 			HookUrl:   "https://webhook.site/776f9805-40b9-4147-93fb-40c92a6711d3",
 		}
 		res, err := cli.HookSet(req)
