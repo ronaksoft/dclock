@@ -19,8 +19,7 @@ func init() {
 
 }
 
-
-type Clock struct {}
+type Clock struct{}
 
 func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse) {
 	panic("implement me")

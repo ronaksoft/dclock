@@ -26,18 +26,19 @@ func main() {
 	}
 
 	// Set the flags as config parameters
-	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("serverID", tools.RandomID(12), ""))
-	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("gatewayListen", "0.0.0.0:80", ""))
-	config.SetCmdPersistentFlags(RootCmd, config.StringSliceFlag("gatewayAdvertiseUrl", nil, ""))
-	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("tunnelListen", "0.0.0.0:81", ""))
-	config.SetCmdPersistentFlags(RootCmd, config.StringSliceFlag("tunnelAdvertiseUrl", nil, ""))
-	config.SetCmdPersistentFlags(RootCmd, config.DurationFlag("idleTime", time.Minute, ""))
-	config.SetCmdPersistentFlags(RootCmd, config.IntFlag("raftPort", 7080, ""))
-	config.SetCmdPersistentFlags(RootCmd, config.UInt64Flag("replicaSet", 1, ""))
-	config.SetCmdPersistentFlags(RootCmd, config.IntFlag("gossipPort", 7081, ""))
-	config.SetCmdPersistentFlags(RootCmd, config.StringFlag("dataPath", "./_hdd", ""))
-	config.SetCmdPersistentFlags(RootCmd, config.BoolFlag("bootstrap", false, ""))
-
+	config.SetCmdPersistentFlags(RootCmd,
+		config.StringFlag("serverID", tools.RandomID(12), ""),
+		config.StringFlag("gatewayListen", "0.0.0.0:80", ""),
+		config.StringSliceFlag("gatewayAdvertiseUrl", nil, ""),
+		config.StringFlag("tunnelListen", "0.0.0.0:81", ""),
+		config.StringSliceFlag("tunnelAdvertiseUrl", nil, ""),
+		config.DurationFlag("idleTime", time.Minute, ""),
+		config.IntFlag("raftPort", 7080, ""),
+		config.UInt64Flag("replicaSet", 1, ""),
+		config.IntFlag("gossipPort", 7081, ""),
+		config.StringFlag("dataPath", "./_hdd", ""),
+		config.BoolFlag("bootstrap", false, ""),
+	)
 
 	// Execute the cli command
 	err = RootCmd.Execute()

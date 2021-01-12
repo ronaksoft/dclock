@@ -1,0 +1,19 @@
+syntax = "proto3";
+package service;
+import "github.com/ronaksoft/rony/options.proto";
+option go_package = "github.com/ronaksoft/dclock/model";
+option (rony_storage) = "local";
+
+
+message Hook {
+    option (rony_model) = true;
+    option (rony_table) = "(ClientID, ID)";
+    option (rony_view) = "(HookUrl, ID)";
+    string ClientID = 1;
+    string ID = 2;
+    string Timestamp = 3; // UTC unix epoch time
+    string HookUrl = 4;
+    bool Fired = 5;
+    bool Success = 6;
+}
+
