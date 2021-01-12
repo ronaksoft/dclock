@@ -9,7 +9,7 @@ service Clock {
 
 message HookSetRequest {
     string UniqueID = 1;
-    string Timestamp = 2; // UTC unix epoch time
+    int64 Timestamp = 2; // UTC unix epoch time
     string HookUrl = 3;
 }
 

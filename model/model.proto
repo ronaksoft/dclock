@@ -11,7 +11,7 @@ message Hook {
     option (rony_view) = "(HookUrl, ID)";
     string ClientID = 1;
     string ID = 2;
-    string Timestamp = 3; // UTC unix epoch time
+    int64 Timestamp = 3; // UTC unix epoch time
     string HookUrl = 4;
     bool Fired = 5;
     bool Success = 6;

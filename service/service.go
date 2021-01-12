@@ -1,7 +1,13 @@
 package service
 
 import (
+	"fmt"
+	"github.com/ronaksoft/dclock/model"
+	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
+	"github.com/ronaksoft/rony/tools"
+	"net/http"
+	"time"
 )
 
 /*
@@ -22,9 +28,54 @@ func init() {
 type Clock struct{}
 
 func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse) {
-	panic("implement me")
+	h := &model.Hook{
+		ClientID:  "",
+		ID:        req.GetUniqueID(),
+		Timestamp: req.GetTimestamp(),
+		HookUrl:   req.GetHookUrl(),
+		Fired:     false,
+		Success:   false,
+	}
+	err := model.SaveHook(h)
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
+
+	waitTime := time.Duration(tools.TimeUnix()-req.GetTimestamp()) * time.Second
+	go func(hookID string, waitTime time.Duration) {
+		time.Sleep(waitTime)
+		h := &model.Hook{
+			ClientID: "",
+			ID:       hookID,
+		}
+		err = model.ReadHook(h)
+		if err != nil {
+			fmt.Println(err)
+		}
+		_, err := http.DefaultClient.Post(h.HookUrl, "application/json", nil)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(req.GetUniqueID(), waitTime)
+	res.Successful = true
 }
 
 func (c *Clock) HookDelete(ctx *edge.RequestCtx, req *HookDeleteRequest, res *HookDeleteResponse) {
-	panic("implement me")
+	h := &model.Hook{
+		ID: req.GetUniqueID(),
+	}
+	err := model.ReadHook(h)
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
+
+	err = model.DeleteHook(h)
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
+
+	res.Successful = true
 }

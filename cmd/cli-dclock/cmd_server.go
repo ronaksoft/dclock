@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony/cluster"
 	"github.com/ronaksoft/rony/config"
@@ -11,44 +10,19 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"runtime"
-	"time"
 )
 
-var (
-	edgeServer *edge.Server
-)
+/*
+   Creation Time: 2021 - Jan - 12
+   Created by:  (ehsan)
+   Maintainers:
+      1.  Ehsan N. Moosa (E2)
+   Auditor: Ehsan N. Moosa (E2)
+   Copyright Ronak Software Group 2020
+*/
 
-func main() {
-	// Initialize the config package
-	err := config.Init("dclock")
-	if err != nil {
-		fmt.Println("config initialization had error:", err)
-	}
-
-	// Set the flags as config parameters
-	config.SetCmdPersistentFlags(RootCmd,
-		config.StringFlag("serverID", tools.RandomID(12), ""),
-		config.StringFlag("gatewayListen", "0.0.0.0:80", ""),
-		config.StringSliceFlag("gatewayAdvertiseUrl", nil, ""),
-		config.StringFlag("tunnelListen", "0.0.0.0:81", ""),
-		config.StringSliceFlag("tunnelAdvertiseUrl", nil, ""),
-		config.DurationFlag("idleTime", time.Minute, ""),
-		config.IntFlag("raftPort", 7080, ""),
-		config.UInt64Flag("replicaSet", 1, ""),
-		config.IntFlag("gossipPort", 7081, ""),
-		config.StringFlag("dataPath", "./_hdd", ""),
-		config.BoolFlag("bootstrap", false, ""),
-	)
-
-	// Execute the cli command
-	err = RootCmd.Execute()
-	if err != nil {
-		fmt.Println("we got error:", err)
-	}
-}
-
-var RootCmd = &cobra.Command{
-	Use: "dclock",
+var ServerCmd = &cobra.Command{
+	Use: "server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Bind the current flags to registered flags in config package
 		err := config.BindCmdFlags(cmd)
@@ -64,7 +38,7 @@ var RootCmd = &cobra.Command{
 				Concurrency:   runtime.NumCPU() * 100,
 				ListenAddress: config.GetString("gatewayListen"),
 				MaxIdleTime:   config.GetDuration("idleTime"),
-				Protocol:      gateway.Http,
+				Protocol:      gateway.Websocket,
 				ExternalAddrs: config.GetStringSlice("gatewayAdvertiseUrl"),
 			}),
 			edge.WithGossipCluster(edge.GossipClusterConfig{

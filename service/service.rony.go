@@ -26,7 +26,7 @@ func (p *poolHookSetRequest) Get() *HookSetRequest {
 
 func (p *poolHookSetRequest) Put(x *HookSetRequest) {
 	x.UniqueID = ""
-	x.Timestamp = ""
+	x.Timestamp = 0
 	x.HookUrl = ""
 	p.pool.Put(x)
 }

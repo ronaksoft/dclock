@@ -26,7 +26,7 @@ func (p *poolHook) Get() *Hook {
 func (p *poolHook) Put(x *Hook) {
 	x.ClientID = ""
 	x.ID = ""
-	x.Timestamp = ""
+	x.Timestamp = 0
 	x.HookUrl = ""
 	x.Fired = false
 	x.Success = false
