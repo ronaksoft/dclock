@@ -44,15 +44,19 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		return
 	}
 
-	ctxReplica := uint64(crc32.ChecksumIEEE(tools.StrToByte(ctx.GetString("ClientID", ""))) % uint32(ctx.Cluster().TotalReplicas()) + 1)
+	ctxReplica := uint64(crc32.ChecksumIEEE(tools.StrToByte(ctx.GetString("ClientID", "")))%uint32(ctx.Cluster().TotalReplicas()) + 1)
 	if ctxReplica != ctx.Cluster().ReplicaSet() {
-		err = ExecuteRemoteHookSet(ctx, ctxReplica, req, res)
+		err = ExecuteRemoteHookSet(ctx, ctxReplica, req, res,
+			&rony.KeyValue{
+				Key:   "ClientID",
+				Value: ctx.GetString("ClientID", ""),
+			},
+		)
 		if err != nil {
 			ctx.PushError(rony.ErrCodeInternal, err.Error())
 			return
 		}
 	}
-
 
 	err = kv.Update(func(txn *badger.Txn) error {
 		key := make([]byte, 11+len(h.ID))
@@ -61,6 +65,7 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		copy(key[11:], h.ID)
 		return txn.Set(key, []byte("OK"))
 	})
+
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return

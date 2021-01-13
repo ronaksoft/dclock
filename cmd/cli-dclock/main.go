@@ -19,10 +19,11 @@ func main() {
 	if err != nil {
 		fmt.Println("config initialization had error:", err)
 	}
-	rony.SetLogLevel(-1)
+	rony.SetLogLevel(0)
 
 	// Set the flags as config parameters
 	config.SetPersistentFlags(ServerCmd,
+		config.StringFlag("join", "", ""),
 		config.StringFlag("serverID", "ServerID", ""),
 		config.StringFlag("gatewayListen", "0.0.0.0:80", ""),
 		config.StringSliceFlag("gatewayAdvertiseUrl", nil, ""),

@@ -231,12 +231,12 @@ func (sw *clockWrapper) HookDeleteWrapper(ctx *edge.RequestCtx, in *rony.Message
 	}
 }
 
-func ExecuteRemoteHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetRequest, res *HookSetResponse) error {
+func ExecuteRemoteHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetRequest, res *HookSetResponse, kvs ...*rony.KeyValue) error {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(ctx.ReqID(), C_HookSetRequest, req)
+	out.Fill(ctx.ReqID(), C_HookSet, req, kvs...)
 	err := ctx.ExecuteRemote(replicaSet, true, out, in)
 	if err != nil {
 		return err
@@ -255,12 +255,12 @@ func ExecuteRemoteHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetR
 	}
 }
 
-func ExecuteRemoteHookDelete(ctx *edge.RequestCtx, replicaSet uint64, req *HookDeleteRequest, res *HookDeleteResponse) error {
+func ExecuteRemoteHookDelete(ctx *edge.RequestCtx, replicaSet uint64, req *HookDeleteRequest, res *HookDeleteResponse, kvs ...*rony.KeyValue) error {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(ctx.ReqID(), C_HookDeleteRequest, req)
+	out.Fill(ctx.ReqID(), C_HookDelete, req, kvs...)
 	err := ctx.ExecuteRemote(replicaSet, true, out, in)
 	if err != nil {
 		return err

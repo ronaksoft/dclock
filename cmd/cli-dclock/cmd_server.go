@@ -81,6 +81,12 @@ var ServerCmd = &cobra.Command{
 		// Start the edge server components
 		edgeServer.Start()
 
+		// Join the cluster
+		seedAddress := config.GetString("join")
+		if len(seedAddress) > 0 {
+			_, _ = edgeServer.JoinCluster(seedAddress)
+		}
+
 		// Initialize and Start Executor
 		e := NewExecutor(runtime.NumCPU()*10, func(h *model.Hook) {
 			err = model.ReadHook(h)
@@ -110,5 +116,5 @@ func Authorize(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
 }
 
 func Log(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
-	fmt.Println("Received Request", ctx.ReqID(), ctx.Conn().ClientIP(), ctx.Kind().String())
+	fmt.Println("Received Request", ctx.ReqID(), ctx.Kind().String())
 }
