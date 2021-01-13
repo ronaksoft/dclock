@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ronaksoft/dclock/service"
+	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edgec"
 	"github.com/ronaksoft/rony/tools"
@@ -62,7 +63,13 @@ var HookSetCmd = &cobra.Command{
 			Timestamp: tools.TimeUnix() + config.GetInt64("delay"),
 			HookUrl:   config.GetString("url"),
 		}
-		res, err := cli.HookSet(req)
+		res, err := cli.HookSet(
+			req,
+			&rony.KeyValue{
+				Key:   "ClientID",
+				Value: config.GetString("clientID"),
+			},
+		)
 		if err != nil {
 			return err
 		}
@@ -79,9 +86,16 @@ var HookDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		res, err := cli.HookDelete(&service.HookDeleteRequest{
+		req := &service.HookDeleteRequest{
 			UniqueID: config.GetString("hookID"),
-		})
+		}
+		res, err := cli.HookDelete(
+			req,
+			&rony.KeyValue{
+				Key:   "ClientID",
+				Value: config.GetString("clientID"),
+			},
+		)
 		if err != nil {
 			return err
 		}

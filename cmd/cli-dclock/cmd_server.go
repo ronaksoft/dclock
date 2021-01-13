@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/dclock/service"
+	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/cluster"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
@@ -74,6 +75,9 @@ var ServerCmd = &cobra.Command{
 		// Register the service into the edge server
 		service.RegisterClock(&service.Clock{}, edgeServer)
 
+		// Set middlewares for logging, authorizing etc.
+		edgeServer.SetPreHandlers(Authorize, Log)
+
 		// Start the edge server components
 		edgeServer.Start()
 
@@ -90,9 +94,21 @@ var ServerCmd = &cobra.Command{
 		})
 		e.Start()
 
-
 		// Wait until a shutdown signal received.
 		edgeServer.ShutdownWithSignal(os.Kill, os.Interrupt)
 		return nil
 	},
+}
+
+func Authorize(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
+	for _, x := range in.Header {
+		switch x.Key {
+		case "ClientID":
+			ctx.Set("ClientID", x.Value)
+		}
+	}
+}
+
+func Log(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
+	fmt.Println("Received Request", ctx.ReqID(), ctx.Conn().ClientIP(), ctx.Kind().String())
 }

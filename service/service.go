@@ -7,6 +7,8 @@ import (
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
 	"github.com/ronaksoft/rony/repo/kv"
+	"github.com/ronaksoft/rony/tools"
+	"hash/crc32"
 )
 
 /*
@@ -41,6 +43,16 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return
 	}
+
+	ctxReplica := uint64(crc32.ChecksumIEEE(tools.StrToByte(ctx.GetString("ClientID", ""))) % uint32(ctx.Cluster().TotalReplicas()) + 1)
+	if ctxReplica != ctx.Cluster().ReplicaSet() {
+		err = ExecuteRemoteHookSet(ctx, ctxReplica, req, res)
+		if err != nil {
+			ctx.PushError(rony.ErrCodeInternal, err.Error())
+			return
+		}
+	}
+
 
 	err = kv.Update(func(txn *badger.Txn) error {
 		key := make([]byte, 11+len(h.ID))

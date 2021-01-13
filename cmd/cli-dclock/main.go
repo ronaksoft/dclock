@@ -37,6 +37,7 @@ func main() {
 	)
 
 	config.SetPersistentFlags(ClientCmd,
+		config.StringFlag("clientID", "", ""),
 		config.StringFlag("host", "127.0.0.1", ""),
 		config.IntFlag("port", 80, ""),
 		config.StringFlag("dataPath", "./_hdd", ""),
@@ -44,7 +45,6 @@ func main() {
 		config.StringFlag("url", "", ""),
 		config.Int64Flag("delay", 30, ""),
 	)
-
 
 	// Execute the cli command
 	RootCmd.AddCommand(ServerCmd, ClientCmd)
