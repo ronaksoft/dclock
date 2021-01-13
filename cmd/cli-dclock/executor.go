@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/ronaksoft/dclock/model"
-	"github.com/ronaksoft/rony/pools"
 	"github.com/ronaksoft/rony/repo/kv"
 	"github.com/ronaksoft/rony/tools"
+	"log"
 	"time"
 )
 
@@ -88,14 +88,14 @@ func (e *Executor) loadCheckPoint() {
 
 func (e *Executor) runCheckPoint() {
 	var checkPointPrefix [11]byte
-	copy(CheckPointPrefix[:3], CheckPointPrefix)
-	binary.BigEndian.PutUint64(CheckPointPrefix[3:], uint64(e.checkPoint))
+	copy(checkPointPrefix[:3], CheckPointPrefix)
+	binary.BigEndian.PutUint64(checkPointPrefix[3:], uint64(e.checkPoint))
 	err := kv.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
-		opt.Prefix = CheckPointPrefix
-		opt.PrefetchValues = true
+		opt.Prefix = checkPointPrefix[:]
+		opt.PrefetchValues = false
 		iter := txn.NewIterator(opt)
-		for iter.Seek(checkPointPrefix[:]); iter.Valid(); iter.Next() {
+		for iter.Seek(checkPointPrefix[:]); iter.ValidForPrefix(checkPointPrefix[:]); iter.Next() {
 			h := &model.Hook{
 				ID: string(iter.Item().Key()[11:]),
 			}
@@ -105,11 +105,13 @@ func (e *Executor) runCheckPoint() {
 				continue
 			}
 			e.rateLimitChan <- struct{}{}
-			pools.Go(func() {
+			go func(h *model.Hook) {
 				e.workerFunc(h)
+				log.Println("Hook Executed", h.ID)
 				<-e.rateLimitChan
-			})
+			}(h)
 		}
+		iter.Close()
 
 		return nil
 	})

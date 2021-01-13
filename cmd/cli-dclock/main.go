@@ -2,14 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
 	"github.com/spf13/cobra"
-	"net/http"
-	"runtime"
-	"strings"
 	"time"
 )
 
@@ -49,18 +45,6 @@ func main() {
 		config.Int64Flag("delay", 30, ""),
 	)
 
-	// Initialize and Start Executor
-	e := NewExecutor(runtime.NumCPU()*10, func(h *model.Hook) {
-		err = model.ReadHook(h)
-		if err != nil {
-			fmt.Println(err)
-		}
-		_, err := http.DefaultClient.Post(h.GetCallbackUrl(), "application/json", strings.NewReader(h.GetJsonData()))
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-	})
-	e.Start()
 
 	// Execute the cli command
 	RootCmd.AddCommand(ServerCmd, ClientCmd)

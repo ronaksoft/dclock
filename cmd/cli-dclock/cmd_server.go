@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony/cluster"
 	"github.com/ronaksoft/rony/config"
@@ -9,8 +11,10 @@ import (
 	"github.com/ronaksoft/rony/repo/kv"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
+	"net/http"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -72,6 +76,20 @@ var ServerCmd = &cobra.Command{
 
 		// Start the edge server components
 		edgeServer.Start()
+
+		// Initialize and Start Executor
+		e := NewExecutor(runtime.NumCPU()*10, func(h *model.Hook) {
+			err = model.ReadHook(h)
+			if err != nil {
+				fmt.Println(err)
+			}
+			_, err := http.DefaultClient.Post(h.GetCallbackUrl(), "application/json", strings.NewReader(h.GetJsonData()))
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+		})
+		e.Start()
+
 
 		// Wait until a shutdown signal received.
 		edgeServer.ShutdownWithSignal(os.Kill, os.Interrupt)

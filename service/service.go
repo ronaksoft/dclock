@@ -1,14 +1,12 @@
 package service
 
 import (
-	"fmt"
+	"encoding/binary"
+	"github.com/dgraph-io/badger/v2"
 	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
-	"github.com/ronaksoft/rony/tools"
-	"net/http"
-	"strings"
-	"time"
+	"github.com/ronaksoft/rony/repo/kv"
 )
 
 /*
@@ -44,22 +42,17 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		return
 	}
 
-	waitTime := time.Duration(req.GetTimestamp()-tools.TimeUnix()) * time.Second
-	go func(hookID string, waitTime time.Duration) {
-		time.Sleep(waitTime)
-		h := &model.Hook{
-			ClientID: "",
-			ID:       hookID,
-		}
-		err = model.ReadHook(h)
-		if err != nil {
-			fmt.Println(err)
-		}
-		_, err := http.DefaultClient.Post(h.GetCallbackUrl(), "application/json", strings.NewReader(h.GetJsonData()))
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-	}(req.GetUniqueID(), waitTime)
+	err = kv.Update(func(txn *badger.Txn) error {
+		key := make([]byte, 11+len(h.ID))
+		copy(key[:3], "CPP")
+		binary.BigEndian.PutUint64(key[3:11], uint64(req.Timestamp))
+		copy(key[11:], h.ID)
+		return txn.Set(key, []byte("OK"))
+	})
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
 	res.Successful = true
 }
 
