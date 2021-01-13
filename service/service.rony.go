@@ -181,23 +181,23 @@ type IClock interface {
 	HookDelete(ctx *edge.RequestCtx, req *HookDeleteRequest, res *HookDeleteResponse)
 }
 
-type ClockWrapper struct {
+type clockWrapper struct {
 	h IClock
 }
 
 func RegisterClock(h IClock, e *edge.Server) {
-	w := ClockWrapper{
+	w := clockWrapper{
 		h: h,
 	}
 	w.Register(e)
 }
 
-func (sw *ClockWrapper) Register(e *edge.Server) {
+func (sw *clockWrapper) Register(e *edge.Server) {
 	e.SetHandlers(C_HookSet, true, sw.HookSetWrapper)
 	e.SetHandlers(C_HookDelete, true, sw.HookDeleteWrapper)
 }
 
-func (sw *ClockWrapper) HookSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
+func (sw *clockWrapper) HookSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
 	req := PoolHookSetRequest.Get()
 	defer PoolHookSetRequest.Put(req)
 	res := PoolHookSetResponse.Get()
@@ -214,7 +214,7 @@ func (sw *ClockWrapper) HookSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnv
 	}
 }
 
-func (sw *ClockWrapper) HookDeleteWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
+func (sw *clockWrapper) HookDeleteWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
 	req := PoolHookDeleteRequest.Get()
 	defer PoolHookDeleteRequest.Put(req)
 	res := PoolHookDeleteResponse.Get()

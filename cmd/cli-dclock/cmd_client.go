@@ -49,9 +49,7 @@ func prepareCmd(cmd *cobra.Command) (*service.ClockClient, error) {
 	cli := service.NewClockClient(wsC)
 	return cli, nil
 }
-func appendRootCmd(rootCmd *cobra.Command) {
-	rootCmd.AddCommand(HookSetCmd)
-}
+
 var HookSetCmd = &cobra.Command{
 	Use: "HookSet",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -60,11 +58,30 @@ var HookSetCmd = &cobra.Command{
 			return err
 		}
 		req := &service.HookSetRequest{
-			UniqueID:  tools.RandomID(32),
-			Timestamp: tools.TimeUnix() + 30,
-			HookUrl:   "https://webhook.site/776f9805-40b9-4147-93fb-40c92a6711d3",
+			UniqueID:  config.GetString("hookID"),
+			Timestamp: tools.TimeUnix() + config.GetInt64("delay"),
+			HookUrl:   config.GetString("url"),
 		}
 		res, err := cli.HookSet(req)
+		if err != nil {
+			return err
+		}
+		cmd.Println("Response:", res.Successful)
+		return nil
+	},
+}
+
+var HookDeleteCmd = &cobra.Command{
+	Use: "HookDelete",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cli, err := prepareCmd(cmd)
+		if err != nil {
+			return err
+		}
+
+		res, err := cli.HookDelete(&service.HookDeleteRequest{
+			UniqueID: config.GetString("hookID"),
+		})
 		if err != nil {
 			return err
 		}

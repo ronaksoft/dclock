@@ -33,6 +33,7 @@ var ServerCmd = &cobra.Command{
 			return err
 		}
 
+		// Initialize KV infrastructure
 		kv.MustInit(kv.Config{
 			DirPath:             config.GetString("dataPath"),
 			ConflictRetries:     100,
