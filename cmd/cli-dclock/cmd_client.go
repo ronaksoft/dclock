@@ -32,8 +32,6 @@ func prepareCmd(cmd *cobra.Command) (*service.ClockClient, error) {
 		return nil, err
 	}
 
-	cmd.Println(config.GetString("dataPath"), config.GetString("host"), config.GetInt("port"))
-
 	wsC := edgec.NewWebsocket(edgec.WebsocketConfig{
 		SeedHostPort: fmt.Sprintf("%s:%d", config.GetString("host"), config.GetInt("port")),
 		Header: map[string]string{
@@ -51,7 +49,9 @@ func prepareCmd(cmd *cobra.Command) (*service.ClockClient, error) {
 	cli := service.NewClockClient(wsC)
 	return cli, nil
 }
-
+func appendRootCmd(rootCmd *cobra.Command) {
+	rootCmd.AddCommand(HookSetCmd)
+}
 var HookSetCmd = &cobra.Command{
 	Use: "HookSet",
 	RunE: func(cmd *cobra.Command, args []string) error {
