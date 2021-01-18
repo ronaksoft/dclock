@@ -20,8 +20,8 @@ import (
    Copyright Ronak Software Group 2020
 */
 
-//go:generate protoc -I=. -I=../vendor --go_out=paths=source_relative:. service.proto
-//go:generate protoc -I=. -I=../vendor --gorony_out=paths=source_relative:. service.proto
+//go:generate protoc -I=. -I=.. -I=../vendor --go_out=paths=source_relative:. service.proto
+//go:generate protoc -I=. -I=.. -I=../vendor --gorony_out=paths=source_relative:. service.proto
 func init() {
 
 }
@@ -30,7 +30,7 @@ type Clock struct{}
 
 func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse) {
 	h := &model.Hook{
-		ClientID:    "",
+		ClientID:    []byte(""),
 		ID:          req.GetUniqueID(),
 		Timestamp:   req.GetTimestamp(),
 		CallbackUrl: req.GetHookUrl(),

@@ -3,9 +3,11 @@ package service
 import (
 	fmt "fmt"
 	rony "github.com/ronaksoft/rony"
+	config "github.com/ronaksoft/rony/config"
 	edge "github.com/ronaksoft/rony/edge"
 	edgec "github.com/ronaksoft/rony/edgec"
 	registry "github.com/ronaksoft/rony/registry"
+	cobra "github.com/spf13/cobra"
 	proto "google.golang.org/protobuf/proto"
 	sync "sync"
 )
@@ -25,14 +27,33 @@ func (p *poolHookSetRequest) Get() *HookSetRequest {
 }
 
 func (p *poolHookSetRequest) Put(x *HookSetRequest) {
-	x.UniqueID = ""
+	x.UniqueID = x.UniqueID[:0]
 	x.Timestamp = 0
-	x.HookUrl = ""
-	x.HookJsonData = ""
+	x.HookUrl = x.HookUrl[:0]
+	x.HookJsonData = x.HookJsonData[:0]
 	p.pool.Put(x)
 }
 
 var PoolHookSetRequest = poolHookSetRequest{}
+
+func (x *HookSetRequest) DeepCopy(z *HookSetRequest) {
+	z.UniqueID = append(z.UniqueID[:0], x.UniqueID...)
+	z.Timestamp = x.Timestamp
+	z.HookUrl = append(z.HookUrl[:0], x.HookUrl...)
+	z.HookJsonData = append(z.HookJsonData[:0], x.HookJsonData...)
+}
+
+func (x *HookSetRequest) Marshal() ([]byte, error) {
+	return proto.Marshal(x)
+}
+
+func (x *HookSetRequest) Unmarshal(b []byte) error {
+	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *HookSetRequest) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_HookSetRequest, x)
+}
 
 const C_HookSetResponse int64 = 2706970787
 
@@ -55,6 +76,22 @@ func (p *poolHookSetResponse) Put(x *HookSetResponse) {
 
 var PoolHookSetResponse = poolHookSetResponse{}
 
+func (x *HookSetResponse) DeepCopy(z *HookSetResponse) {
+	z.Successful = x.Successful
+}
+
+func (x *HookSetResponse) Marshal() ([]byte, error) {
+	return proto.Marshal(x)
+}
+
+func (x *HookSetResponse) Unmarshal(b []byte) error {
+	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *HookSetResponse) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_HookSetResponse, x)
+}
+
 const C_HookDeleteRequest int64 = 3968236869
 
 type poolHookDeleteRequest struct {
@@ -70,11 +107,27 @@ func (p *poolHookDeleteRequest) Get() *HookDeleteRequest {
 }
 
 func (p *poolHookDeleteRequest) Put(x *HookDeleteRequest) {
-	x.UniqueID = ""
+	x.UniqueID = x.UniqueID[:0]
 	p.pool.Put(x)
 }
 
 var PoolHookDeleteRequest = poolHookDeleteRequest{}
+
+func (x *HookDeleteRequest) DeepCopy(z *HookDeleteRequest) {
+	z.UniqueID = append(z.UniqueID[:0], x.UniqueID...)
+}
+
+func (x *HookDeleteRequest) Marshal() ([]byte, error) {
+	return proto.Marshal(x)
+}
+
+func (x *HookDeleteRequest) Unmarshal(b []byte) error {
+	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *HookDeleteRequest) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_HookDeleteRequest, x)
+}
 
 const C_HookDeleteResponse int64 = 1487544771
 
@@ -97,6 +150,25 @@ func (p *poolHookDeleteResponse) Put(x *HookDeleteResponse) {
 
 var PoolHookDeleteResponse = poolHookDeleteResponse{}
 
+func (x *HookDeleteResponse) DeepCopy(z *HookDeleteResponse) {
+	z.Successful = x.Successful
+}
+
+func (x *HookDeleteResponse) Marshal() ([]byte, error) {
+	return proto.Marshal(x)
+}
+
+func (x *HookDeleteResponse) Unmarshal(b []byte) error {
+	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *HookDeleteResponse) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_HookDeleteResponse, x)
+}
+
+const C_HookSet int64 = 3312939871
+const C_HookDelete int64 = 3778745165
+
 func init() {
 	registry.RegisterConstructor(2791338713, "HookSetRequest")
 	registry.RegisterConstructor(2706970787, "HookSetResponse")
@@ -105,76 +177,6 @@ func init() {
 	registry.RegisterConstructor(3312939871, "HookSet")
 	registry.RegisterConstructor(3778745165, "HookDelete")
 }
-
-func (x *HookSetRequest) DeepCopy(z *HookSetRequest) {
-	z.UniqueID = x.UniqueID
-	z.Timestamp = x.Timestamp
-	z.HookUrl = x.HookUrl
-	z.HookJsonData = x.HookJsonData
-}
-
-func (x *HookSetResponse) DeepCopy(z *HookSetResponse) {
-	z.Successful = x.Successful
-}
-
-func (x *HookDeleteRequest) DeepCopy(z *HookDeleteRequest) {
-	z.UniqueID = x.UniqueID
-}
-
-func (x *HookDeleteResponse) DeepCopy(z *HookDeleteResponse) {
-	z.Successful = x.Successful
-}
-
-func (x *HookSetRequest) PushToContext(ctx *edge.RequestCtx) {
-	ctx.PushMessage(C_HookSetRequest, x)
-}
-
-func (x *HookSetResponse) PushToContext(ctx *edge.RequestCtx) {
-	ctx.PushMessage(C_HookSetResponse, x)
-}
-
-func (x *HookDeleteRequest) PushToContext(ctx *edge.RequestCtx) {
-	ctx.PushMessage(C_HookDeleteRequest, x)
-}
-
-func (x *HookDeleteResponse) PushToContext(ctx *edge.RequestCtx) {
-	ctx.PushMessage(C_HookDeleteResponse, x)
-}
-
-func (x *HookSetRequest) Marshal() ([]byte, error) {
-	return proto.Marshal(x)
-}
-
-func (x *HookSetResponse) Marshal() ([]byte, error) {
-	return proto.Marshal(x)
-}
-
-func (x *HookDeleteRequest) Marshal() ([]byte, error) {
-	return proto.Marshal(x)
-}
-
-func (x *HookDeleteResponse) Marshal() ([]byte, error) {
-	return proto.Marshal(x)
-}
-
-func (x *HookSetRequest) Unmarshal(b []byte) error {
-	return proto.UnmarshalOptions{}.Unmarshal(b, x)
-}
-
-func (x *HookSetResponse) Unmarshal(b []byte) error {
-	return proto.UnmarshalOptions{}.Unmarshal(b, x)
-}
-
-func (x *HookDeleteRequest) Unmarshal(b []byte) error {
-	return proto.UnmarshalOptions{}.Unmarshal(b, x)
-}
-
-func (x *HookDeleteResponse) Unmarshal(b []byte) error {
-	return proto.UnmarshalOptions{}.Unmarshal(b, x)
-}
-
-const C_HookSet int64 = 3312939871
-const C_HookDelete int64 = 3778745165
 
 type IClock interface {
 	HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse)
@@ -185,19 +187,7 @@ type clockWrapper struct {
 	h IClock
 }
 
-func RegisterClock(h IClock, e *edge.Server) {
-	w := clockWrapper{
-		h: h,
-	}
-	w.Register(e)
-}
-
-func (sw *clockWrapper) Register(e *edge.Server) {
-	e.SetHandlers(C_HookSet, true, sw.HookSetWrapper)
-	e.SetHandlers(C_HookDelete, true, sw.HookDeleteWrapper)
-}
-
-func (sw *clockWrapper) HookSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
+func (sw *clockWrapper) hookSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
 	req := PoolHookSetRequest.Get()
 	defer PoolHookSetRequest.Put(req)
 	res := PoolHookSetResponse.Get()
@@ -214,7 +204,7 @@ func (sw *clockWrapper) HookSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnv
 	}
 }
 
-func (sw *clockWrapper) HookDeleteWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
+func (sw *clockWrapper) hookDeleteWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
 	req := PoolHookDeleteRequest.Get()
 	defer PoolHookDeleteRequest.Put(req)
 	res := PoolHookDeleteResponse.Get()
@@ -229,6 +219,18 @@ func (sw *clockWrapper) HookDeleteWrapper(ctx *edge.RequestCtx, in *rony.Message
 	if !ctx.Stopped() {
 		ctx.PushMessage(C_HookDeleteResponse, res)
 	}
+}
+
+func (sw *clockWrapper) Register(e *edge.Server) {
+	e.SetHandlers(C_HookSet, true, sw.hookSetWrapper)
+	e.SetHandlers(C_HookDelete, true, sw.hookDeleteWrapper)
+}
+
+func RegisterClock(h IClock, e *edge.Server) {
+	w := clockWrapper{
+		h: h,
+	}
+	w.Register(e)
 }
 
 func ExecuteRemoteHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetRequest, res *HookSetResponse, kvs ...*rony.KeyValue) error {
@@ -335,4 +337,71 @@ func (c *ClockClient) HookDelete(req *HookDeleteRequest, kvs ...*rony.KeyValue) 
 	default:
 		return nil, fmt.Errorf("unknown message: %d", in.GetConstructor())
 	}
+}
+
+func prepareClockCommand(cmd *cobra.Command) (*ClockClient, error) {
+	// Bind the current flags to registered flags in config package
+	err := config.BindCmdFlags(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	httpC := edgec.NewHttp(edgec.HttpConfig{
+		Name:         "",
+		SeedHostPort: fmt.Sprintf("%s:%d", config.GetString("host"), config.GetInt("port")),
+	})
+
+	err = httpC.Start()
+	if err != nil {
+		return nil, err
+	}
+	return NewClockClient(httpC), nil
+}
+
+var genHookSetCmd = func(h IClockCli) *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "hook-set",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cli, err := prepareClockCommand(cmd)
+			if err != nil {
+				return err
+			}
+			return h.HookSet(cli, cmd, args)
+		},
+	}
+	config.SetFlags(cmd,
+		config.StringFlag("uniqueID", "", ""),
+		config.Int64Flag("timestamp", 0, ""),
+		config.StringFlag("hookUrl", "", ""),
+		config.StringFlag("hookJsonData", "", ""),
+	)
+	return cmd
+}
+
+var genHookDeleteCmd = func(h IClockCli) *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "hook-delete",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cli, err := prepareClockCommand(cmd)
+			if err != nil {
+				return err
+			}
+			return h.HookDelete(cli, cmd, args)
+		},
+	}
+	config.SetFlags(cmd,
+		config.StringFlag("uniqueID", "", ""),
+	)
+	return cmd
+}
+
+type IClockCli interface {
+	HookSet(cli *ClockClient, cmd *cobra.Command, args []string) error
+	HookDelete(cli *ClockClient, cmd *cobra.Command, args []string) error
+}
+
+func RegisterClockCli(h IClockCli, rootCmd *cobra.Command) {
+	rootCmd.AddCommand(
+		genHookSetCmd(h), genHookDeleteCmd(h),
+	)
 }

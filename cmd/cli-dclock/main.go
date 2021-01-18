@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
@@ -37,19 +38,12 @@ func main() {
 		config.BoolFlag("bootstrap", false, ""),
 	)
 
-	config.SetPersistentFlags(ClientCmd,
-		config.StringFlag("clientID", "", ""),
-		config.StringFlag("host", "127.0.0.1", ""),
-		config.IntFlag("port", 80, ""),
-		config.StringFlag("dataPath", "./_hdd", ""),
-		config.StringFlag("hookID", "", ""),
-		config.StringFlag("url", "", ""),
-		config.Int64Flag("delay", 30, ""),
-	)
-
 	// Execute the cli command
 	RootCmd.AddCommand(ServerCmd, ClientCmd)
-	ClientCmd.AddCommand(HookSetCmd, HookDeleteCmd)
+
+	// Register Client Commands
+	service.RegisterClockCli(&ClockCli{}, ClientCmd)
+
 	err = RootCmd.Execute()
 	if err != nil {
 		fmt.Println("we got error:", err)

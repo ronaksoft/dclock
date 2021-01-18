@@ -93,7 +93,7 @@ var ServerCmd = &cobra.Command{
 			if err != nil {
 				fmt.Println(err)
 			}
-			_, err := http.DefaultClient.Post(h.GetCallbackUrl(), "application/json", strings.NewReader(h.GetJsonData()))
+			_, err := http.DefaultClient.Post(tools.ByteToStr(h.GetCallbackUrl()), "application/json", strings.NewReader(tools.ByteToStr(h.GetJsonData())))
 			if err != nil {
 				fmt.Println("Error:", err)
 			}

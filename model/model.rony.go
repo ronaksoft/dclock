@@ -24,11 +24,11 @@ func (p *poolHook) Get() *Hook {
 }
 
 func (p *poolHook) Put(x *Hook) {
-	x.ClientID = ""
-	x.ID = ""
+	x.ClientID = x.ClientID[:0]
+	x.ID = x.ID[:0]
 	x.Timestamp = 0
-	x.CallbackUrl = ""
-	x.JsonData = ""
+	x.CallbackUrl = x.CallbackUrl[:0]
+	x.JsonData = x.JsonData[:0]
 	x.Fired = false
 	x.Success = false
 	p.pool.Put(x)
@@ -36,22 +36,14 @@ func (p *poolHook) Put(x *Hook) {
 
 var PoolHook = poolHook{}
 
-func init() {
-	registry.RegisterConstructor(74116203, "Hook")
-}
-
 func (x *Hook) DeepCopy(z *Hook) {
-	z.ClientID = x.ClientID
-	z.ID = x.ID
+	z.ClientID = append(z.ClientID[:0], x.ClientID...)
+	z.ID = append(z.ID[:0], x.ID...)
 	z.Timestamp = x.Timestamp
-	z.CallbackUrl = x.CallbackUrl
-	z.JsonData = x.JsonData
+	z.CallbackUrl = append(z.CallbackUrl[:0], x.CallbackUrl...)
+	z.JsonData = append(z.JsonData[:0], x.JsonData...)
 	z.Fired = x.Fired
 	z.Success = x.Success
-}
-
-func (x *Hook) PushToContext(ctx *edge.RequestCtx) {
-	ctx.PushMessage(C_Hook, x)
 }
 
 func (x *Hook) Marshal() ([]byte, error) {
@@ -60,6 +52,62 @@ func (x *Hook) Marshal() ([]byte, error) {
 
 func (x *Hook) Unmarshal(b []byte) error {
 	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *Hook) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_Hook, x)
+}
+
+const C_HookHolder int64 = 226559863
+
+type poolHookHolder struct {
+	pool sync.Pool
+}
+
+func (p *poolHookHolder) Get() *HookHolder {
+	x, ok := p.pool.Get().(*HookHolder)
+	if !ok {
+		return &HookHolder{}
+	}
+	return x
+}
+
+func (p *poolHookHolder) Put(x *HookHolder) {
+	x.ClientID = x.ClientID[:0]
+	x.ID = x.ID[:0]
+	if x.Hook != nil {
+		PoolHook.Put(x.Hook)
+		x.Hook = nil
+	}
+	p.pool.Put(x)
+}
+
+var PoolHookHolder = poolHookHolder{}
+
+func (x *HookHolder) DeepCopy(z *HookHolder) {
+	z.ClientID = append(z.ClientID[:0], x.ClientID...)
+	z.ID = append(z.ID[:0], x.ID...)
+	if x.Hook != nil {
+		z.Hook = PoolHook.Get()
+		x.Hook.DeepCopy(z.Hook)
+	}
+}
+
+func (x *HookHolder) Marshal() ([]byte, error) {
+	return proto.Marshal(x)
+}
+
+func (x *HookHolder) Unmarshal(b []byte) error {
+	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *HookHolder) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_HookHolder, x)
+}
+
+func init() {
+	registry.RegisterConstructor(74116203, "Hook")
+	registry.RegisterConstructor(226559863, "HookHolder")
 }
 
 func SaveHook(m *Hook) error {
@@ -119,6 +167,47 @@ func DeleteHook(m *Hook) error {
 		}
 
 		err = txn.Delete(alloc.GenKey(C_Hook, 3583556648, m.CallbackUrl, m.ID))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func SaveHookHolder(m *HookHolder) error {
+	alloc := kv.NewAllocator()
+	defer alloc.ReleaseAll()
+	return kv.Update(func(txn *badger.Txn) error {
+		b := alloc.GenValue(m)
+		err := txn.Set(alloc.GenKey(C_HookHolder, m.ClientID, m.ID), b)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func ReadHookHolder(m *HookHolder) error {
+	alloc := kv.NewAllocator()
+	defer alloc.ReleaseAll()
+	return kv.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(alloc.GenKey(C_HookHolder, m.ClientID, m.ID))
+		if err != nil {
+			return err
+		}
+		return item.Value(func(val []byte) error {
+			return m.Unmarshal(val)
+		})
+	})
+}
+
+func DeleteHookHolder(m *HookHolder) error {
+	alloc := kv.NewAllocator()
+	defer alloc.ReleaseAll()
+	return kv.Update(func(txn *badger.Txn) error {
+		err := txn.Delete(alloc.GenKey(C_HookHolder, m.ClientID, m.ID))
 		if err != nil {
 			return err
 		}

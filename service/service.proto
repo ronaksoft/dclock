@@ -1,17 +1,19 @@
 syntax = "proto3";
 package service;
+import "github.com/ronaksoft/rony/options.proto";
 option go_package = "github.com/ronaksoft/dclock/service";
 
 service Clock {
+    option (rony_cobra_cmd) = true;
     rpc HookSet (HookSetRequest) returns (HookSetResponse);
     rpc HookDelete (HookDeleteRequest) returns (HookDeleteResponse);
 }
 
 message HookSetRequest {
-    string UniqueID = 1;
+    bytes UniqueID = 1;
     int64 Timestamp = 2; // UTC unix epoch time
-    string HookUrl = 3;
-    string HookJsonData = 4;
+    bytes HookUrl = 3;
+    bytes HookJsonData = 4;
 }
 
 message HookSetResponse {
@@ -19,7 +21,7 @@ message HookSetResponse {
 }
 
 message HookDeleteRequest {
-    string UniqueID = 1;
+    bytes UniqueID = 1;
 }
 
 message HookDeleteResponse {

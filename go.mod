@@ -8,6 +8,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/nyaruka/phonenumbers v1.0.60 // indirect
 	github.com/ronaksoft/rony v0.3.1
+	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.1.1
 	google.golang.org/protobuf v1.25.0
 )

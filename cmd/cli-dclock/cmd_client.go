@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/config"
-	"github.com/ronaksoft/rony/edgec"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
 )
@@ -21,85 +19,44 @@ import (
 
 var ClientCmd = &cobra.Command{
 	Use: "client",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
 }
 
-func prepareCmd(cmd *cobra.Command) (*service.ClockClient, error) {
-	// Bind the current flags to registered flags in config package
-	err := config.BindCmdFlags(cmd)
-	if err != nil {
-		return nil, err
-	}
+type ClockCli struct{}
 
-	wsC := edgec.NewWebsocket(edgec.WebsocketConfig{
-		SeedHostPort: fmt.Sprintf("%s:%d", config.GetString("host"), config.GetInt("port")),
-		Header: map[string]string{
-			"APIKEY": "",
+func (c *ClockCli) HookSet(cli *service.ClockClient, cmd *cobra.Command, args []string) error {
+	req := &service.HookSetRequest{
+		UniqueID:  tools.StrToByte(config.GetString("hookID")),
+		Timestamp: tools.TimeUnix() + config.GetInt64("delay"),
+		HookUrl:   tools.StrToByte(config.GetString("url")),
+	}
+	res, err := cli.HookSet(
+		req,
+		&rony.KeyValue{
+			Key:   "ClientID",
+			Value: config.GetString("clientID"),
 		},
-		Router: nil,
-		Secure: false,
-	})
-
-	err = wsC.Start()
+	)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	cli := service.NewClockClient(wsC)
-	return cli, nil
+	cmd.Println("Response:", res.Successful)
+	return nil
 }
 
-var HookSetCmd = &cobra.Command{
-	Use: "HookSet",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cli, err := prepareCmd(cmd)
-		if err != nil {
-			return err
-		}
-		req := &service.HookSetRequest{
-			UniqueID:  config.GetString("hookID"),
-			Timestamp: tools.TimeUnix() + config.GetInt64("delay"),
-			HookUrl:   config.GetString("url"),
-		}
-		res, err := cli.HookSet(
-			req,
-			&rony.KeyValue{
-				Key:   "ClientID",
-				Value: config.GetString("clientID"),
-			},
-		)
-		if err != nil {
-			return err
-		}
-		cmd.Println("Response:", res.Successful)
-		return nil
-	},
-}
-
-var HookDeleteCmd = &cobra.Command{
-	Use: "HookDelete",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cli, err := prepareCmd(cmd)
-		if err != nil {
-			return err
-		}
-
-		req := &service.HookDeleteRequest{
-			UniqueID: config.GetString("hookID"),
-		}
-		res, err := cli.HookDelete(
-			req,
-			&rony.KeyValue{
-				Key:   "ClientID",
-				Value: config.GetString("clientID"),
-			},
-		)
-		if err != nil {
-			return err
-		}
-		cmd.Println("Response:", res.Successful)
-		return nil
-	},
+func (c *ClockCli) HookDelete(cli *service.ClockClient, cmd *cobra.Command, args []string) error {
+	req := &service.HookDeleteRequest{
+		UniqueID: tools.StrToByte(config.GetString("hookID")),
+	}
+	res, err := cli.HookDelete(
+		req,
+		&rony.KeyValue{
+			Key:   "ClientID",
+			Value: config.GetString("clientID"),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	cmd.Println("Response:", res.Successful)
+	return nil
 }
