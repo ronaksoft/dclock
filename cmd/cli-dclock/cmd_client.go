@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/c-bata/go-prompt"
 	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/config"
@@ -19,16 +20,32 @@ import (
 
 var ClientCmd = &cobra.Command{
 	Use: "client",
+	Run: func(cmd *cobra.Command, args []string) {
+		rony.SetLogLevel(-1)
+
+		// Register Client Commands
+		service.RegisterClockCli(&ClockCli{}, ClientInteractiveCmd)
+
+		p := prompt.New(tools.PromptExecutor(ClientInteractiveCmd), tools.PromptCompleter(ClientInteractiveCmd))
+		p.Run()
+	},
+}
+
+var ClientInteractiveCmd = &cobra.Command{
+	Use: "interactive",
+	Run: func(cmd *cobra.Command, args []string) {
+	},
 }
 
 type ClockCli struct{}
 
 func (c *ClockCli) HookSet(cli *service.ClockClient, cmd *cobra.Command, args []string) error {
 	req := &service.HookSetRequest{
-		UniqueID:  tools.StrToByte(config.GetString("hookID")),
-		Timestamp: tools.TimeUnix() + config.GetInt64("delay"),
-		HookUrl:   tools.StrToByte(config.GetString("url")),
+		UniqueID:  tools.StrToByte(config.GetString("uniqueID")),
+		Timestamp: tools.TimeUnix() + config.GetInt64("timestamp"),
+		HookUrl:   tools.StrToByte(config.GetString("hookUrl")),
 	}
+	cmd.Println("Req:", req.String())
 	res, err := cli.HookSet(
 		req,
 		&rony.KeyValue{
@@ -37,7 +54,8 @@ func (c *ClockCli) HookSet(cli *service.ClockClient, cmd *cobra.Command, args []
 		},
 	)
 	if err != nil {
-		return err
+		cmd.Println("Error:", err)
+		return nil
 	}
 	cmd.Println("Response:", res.Successful)
 	return nil
@@ -47,6 +65,7 @@ func (c *ClockCli) HookDelete(cli *service.ClockClient, cmd *cobra.Command, args
 	req := &service.HookDeleteRequest{
 		UniqueID: tools.StrToByte(config.GetString("hookID")),
 	}
+	cmd.Println("Req:", req.String())
 	res, err := cli.HookDelete(
 		req,
 		&rony.KeyValue{
@@ -55,7 +74,8 @@ func (c *ClockCli) HookDelete(cli *service.ClockClient, cmd *cobra.Command, args
 		},
 	)
 	if err != nil {
-		return err
+		cmd.Println("Error:", err)
+		return nil
 	}
 	cmd.Println("Response:", res.Successful)
 	return nil

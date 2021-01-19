@@ -45,6 +45,8 @@ var ServerCmd = &cobra.Command{
 			ConflictMaxInterval: time.Millisecond,
 		})
 
+		rony.SetLogLevel(-1)
+
 		// Instantiate the edge server
 		edgeServer = edge.NewServer(
 			config.GetString("serverID"),
@@ -52,7 +54,7 @@ var ServerCmd = &cobra.Command{
 				Concurrency:   runtime.NumCPU() * 100,
 				ListenAddress: config.GetString("gatewayListen"),
 				MaxIdleTime:   config.GetDuration("idleTime"),
-				Protocol:      gateway.Websocket,
+				Protocol:      gateway.Http,
 				ExternalAddrs: config.GetStringSlice("gatewayAdvertiseUrl"),
 			}),
 			edge.WithGossipCluster(edge.GossipClusterConfig{

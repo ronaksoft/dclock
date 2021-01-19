@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
@@ -41,12 +40,9 @@ func main() {
 	// Execute the cli command
 	RootCmd.AddCommand(ServerCmd, ClientCmd)
 
-	// Register Client Commands
-	service.RegisterClockCli(&ClockCli{}, ClientCmd)
-
 	err = RootCmd.Execute()
 	if err != nil {
-		fmt.Println("we got error:", err)
+		fmt.Println(err)
 	}
 }
 

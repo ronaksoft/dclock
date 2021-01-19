@@ -401,6 +401,10 @@ type IClockCli interface {
 }
 
 func RegisterClockCli(h IClockCli, rootCmd *cobra.Command) {
+	config.SetPersistentFlags(rootCmd,
+		config.StringFlag("host", "127.0.0.1", "the seed host's address"),
+		config.StringFlag("port", "80", "the seed host's port"),
+	)
 	rootCmd.AddCommand(
 		genHookSetCmd(h), genHookDeleteCmd(h),
 	)

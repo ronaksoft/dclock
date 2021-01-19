@@ -56,20 +56,21 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 			ctx.PushError(rony.ErrCodeInternal, err.Error())
 			return
 		}
+	} else {
+		err = kv.Update(func(txn *badger.Txn) error {
+			key := make([]byte, 11+len(h.ID))
+			copy(key[:3], "CPP")
+			binary.BigEndian.PutUint64(key[3:11], uint64(req.Timestamp))
+			copy(key[11:], h.ID)
+			return txn.Set(key, []byte("OK"))
+		})
+
+		if err != nil {
+			ctx.PushError(rony.ErrCodeInternal, err.Error())
+			return
+		}
 	}
 
-	err = kv.Update(func(txn *badger.Txn) error {
-		key := make([]byte, 11+len(h.ID))
-		copy(key[:3], "CPP")
-		binary.BigEndian.PutUint64(key[3:11], uint64(req.Timestamp))
-		copy(key[11:], h.ID)
-		return txn.Set(key, []byte("OK"))
-	})
-
-	if err != nil {
-		ctx.PushError(rony.ErrCodeInternal, err.Error())
-		return
-	}
 	res.Successful = true
 }
 
