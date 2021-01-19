@@ -347,7 +347,7 @@ func prepareClockCommand(cmd *cobra.Command) (*ClockClient, error) {
 	}
 
 	httpC := edgec.NewHttp(edgec.HttpConfig{
-		Name:         "",
+		Name:         "Rony Client",
 		SeedHostPort: fmt.Sprintf("%s:%d", config.GetString("host"), config.GetInt("port")),
 	})
 

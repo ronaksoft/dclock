@@ -12,10 +12,10 @@ import (
 	"github.com/ronaksoft/rony/repo/kv"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
+	"github.com/valyala/fasthttp"
 	"net/http"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 )
 
@@ -90,15 +90,27 @@ var ServerCmd = &cobra.Command{
 		}
 
 		// Initialize and Start Executor
+		httpClient := &fasthttp.Client{
+			Name: "dClock",
+		}
 		e := NewExecutor(runtime.NumCPU()*10, func(h *model.Hook) {
 			err = model.ReadHook(h)
 			if err != nil {
 				fmt.Println(err)
+				return
 			}
-			_, err := http.DefaultClient.Post(tools.ByteToStr(h.GetCallbackUrl()), "application/json", strings.NewReader(tools.ByteToStr(h.GetJsonData())))
+			req := fasthttp.AcquireRequest()
+			res := fasthttp.AcquireResponse()
+			req.Header.SetMethod(http.MethodPost)
+			req.Header.SetContentType("application/json")
+			req.SetRequestURIBytes(h.GetCallbackUrl())
+			req.SetBody(h.GetJsonData())
+			err := httpClient.Do(req, res)
 			if err != nil {
 				fmt.Println("Error:", err)
 			}
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(res)
 		})
 		e.Start()
 
