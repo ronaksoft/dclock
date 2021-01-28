@@ -60,12 +60,12 @@ func TestHook(t *testing.T) {
 		h2, err = model.ReadHook(h.GetClientID(), h.GetID(), h2)
 		c.So(err, ShouldBeNil)
 		c.So(h2.Timestamp, ShouldEqual, h.Timestamp)
-		c.So(h2.CallbackUrl, ShouldEqual, h.CallbackUrl)
+		c.So(h2.CallbackUrl, ShouldResemble, h.CallbackUrl)
 
 		h3 := &model.Hook{}
 		h3, err = model.ReadHookByCallbackUrlAndID(h.GetCallbackUrl(), h.GetID(), h3)
 		c.So(err, ShouldBeNil)
-		c.So(h3.ClientID, ShouldEqual, h.ClientID)
+		c.So(h3.ClientID, ShouldResemble, h.ClientID)
 		c.So(h3.Timestamp, ShouldEqual, h.Timestamp)
 
 		err = model.DeleteHook(h.GetClientID(), h.GetID())
