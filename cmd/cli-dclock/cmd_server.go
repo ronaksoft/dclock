@@ -75,10 +75,7 @@ var ServerCmd = &cobra.Command{
 		)
 
 		// Register the service into the edge server
-		service.RegisterClock(&service.Clock{}, edgeServer)
-
-		// Set middlewares for logging, authorizing etc.
-		edgeServer.SetPreHandlers(Authorize, Log)
+		service.RegisterClock(&service.Clock{}, edgeServer, edge.NewHandlerOptions().SetPreHandlers(Authorize, Log))
 
 		// Start the edge server components
 		edgeServer.Start()
@@ -94,7 +91,7 @@ var ServerCmd = &cobra.Command{
 			Name: "dClock",
 		}
 		e := NewExecutor(runtime.NumCPU()*10, func(h *model.Hook) {
-			err = model.ReadHook(h)
+			h, err = model.ReadHook(h.GetClientID(), h.GetID(), h)
 			if err != nil {
 				fmt.Println(err)
 				return

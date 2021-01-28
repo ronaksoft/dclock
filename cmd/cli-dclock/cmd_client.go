@@ -24,7 +24,7 @@ var ClientCmd = &cobra.Command{
 		rony.SetLogLevel(-1)
 
 		// Register Client Commands
-		service.RegisterClockCli(&ClockCli{}, ClientInteractiveCmd)
+		service.RegisterClockCli(&ClockCli{}, nil, ClientInteractiveCmd)
 
 		p := prompt.New(tools.PromptExecutor(ClientInteractiveCmd), tools.PromptCompleter(ClientInteractiveCmd))
 		p.Run()

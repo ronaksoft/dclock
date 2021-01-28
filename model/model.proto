@@ -5,6 +5,7 @@ option go_package = "github.com/ronaksoft/dclock/model";
 option (rony_storage) = "local";
 
 
+// Hook
 message Hook {
     option (rony_model) = true;
     option (rony_table) = "(ClientID, ID)";
@@ -18,6 +19,7 @@ message Hook {
     bool Success = 7;
 }
 
+// HookHolder
 message HookHolder {
     option (rony_model) = true;
     option (rony_table) = "(ClientID, ID)";

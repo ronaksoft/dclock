@@ -26,6 +26,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
+// Hook
 type Hook struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -121,6 +122,7 @@ func (x *Hook) GetSuccess() bool {
 	return false
 }
 
+// HookHolder
 type HookHolder struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

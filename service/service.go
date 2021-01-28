@@ -75,16 +75,14 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 }
 
 func (c *Clock) HookDelete(ctx *edge.RequestCtx, req *HookDeleteRequest, res *HookDeleteResponse) {
-	h := &model.Hook{
-		ID: req.GetUniqueID(),
-	}
-	err := model.ReadHook(h)
+	h := &model.Hook{}
+	h, err := model.ReadHook(nil, req.GetUniqueID(), h)
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return
 	}
 
-	err = model.DeleteHook(h)
+	err = model.DeleteHook(nil, req.GetUniqueID())
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return

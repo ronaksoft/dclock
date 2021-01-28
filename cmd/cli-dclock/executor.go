@@ -98,7 +98,7 @@ func (e *Executor) runCheckPoint() {
 		for iter.Seek(checkPointPrefix[:]); iter.ValidForPrefix(checkPointPrefix[:]); iter.Next() {
 			h := &model.Hook{}
 			h.ID = append(h.ID, iter.Item().Key()[11:]...)
-			err := model.ReadHook(h)
+			h, err := model.ReadHook(h.GetClientID(), h.GetID(), h)
 			if err != nil {
 				fmt.Println("err on reading hook:", err)
 				continue
