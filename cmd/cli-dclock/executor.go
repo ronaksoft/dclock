@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/rony/repo/kv"
 	"github.com/ronaksoft/rony/tools"

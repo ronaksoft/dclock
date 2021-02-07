@@ -2,7 +2,7 @@ package service
 
 import (
 	"encoding/binary"
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"

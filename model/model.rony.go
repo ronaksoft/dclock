@@ -3,7 +3,7 @@
 package model
 
 import (
-	badger "github.com/dgraph-io/badger/v2"
+	badger "github.com/dgraph-io/badger/v3"
 	edge "github.com/ronaksoft/rony/edge"
 	registry "github.com/ronaksoft/rony/registry"
 	kv "github.com/ronaksoft/rony/repo/kv"
@@ -120,14 +120,14 @@ func SaveHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *Hook) (err error) 
 
 	// save entry
 	b := alloc.GenValue(m)
-	key := alloc.GenKey(C_Hook, 3973050528, m.ClientID, m.ID)
+	key := alloc.GenKey('M', C_Hook, 3973050528, m.ClientID, m.ID)
 	err = txn.Set(key, b)
 	if err != nil {
 		return
 	}
 
 	// save entry for view[CallbackUrl ID]
-	err = txn.Set(alloc.GenKey(C_Hook, 3467894716, m.CallbackUrl, m.ID), b)
+	err = txn.Set(alloc.GenKey('M', C_Hook, 3467894716, m.CallbackUrl, m.ID), b)
 	if err != nil {
 		return
 	}
@@ -150,7 +150,7 @@ func ReadHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id [
 		defer alloc.ReleaseAll()
 	}
 
-	item, err := txn.Get(alloc.GenKey(C_Hook, 3973050528, clientID, id))
+	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3973050528, clientID, id))
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func ReadHookByCallbackUrlAndIDWithTxn(txn *badger.Txn, alloc *kv.Allocator, cal
 		defer alloc.ReleaseAll()
 	}
 
-	item, err := txn.Get(alloc.GenKey(C_Hook, 3467894716, callbackUrl, id))
+	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3467894716, callbackUrl, id))
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func ReadHookByCallbackUrlAndID(callbackUrl []byte, id []byte, m *Hook) (*Hook, 
 
 func DeleteHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id []byte) error {
 	m := &Hook{}
-	item, err := txn.Get(alloc.GenKey(C_Hook, 3973050528, clientID, id))
+	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3973050528, clientID, id))
 	if err != nil {
 		return err
 	}
@@ -216,12 +216,12 @@ func DeleteHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id
 	if err != nil {
 		return err
 	}
-	err = txn.Delete(alloc.GenKey(C_Hook, 3973050528, m.ClientID, m.ID))
+	err = txn.Delete(alloc.GenKey('M', C_Hook, 3973050528, m.ClientID, m.ID))
 	if err != nil {
 		return err
 	}
 
-	err = txn.Delete(alloc.GenKey(C_Hook, 3467894716, m.CallbackUrl, m.ID))
+	err = txn.Delete(alloc.GenKey('M', C_Hook, 3467894716, m.CallbackUrl, m.ID))
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,7 @@ func ListHook(
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey(C_Hook, 3973050528)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey(C_Hook, 3973050528, offsetClientID)
+		osk := alloc.GenKey('M', C_Hook, 3973050528, offsetClientID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -278,6 +278,36 @@ func ListHook(
 	return res, err
 }
 
+func IterHooks(txn *badger.Txn, alloc *kv.Allocator, cb func(m *Hook) bool) error {
+	if alloc == nil {
+		alloc = kv.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
+	iterOpt := badger.DefaultIteratorOptions
+	iterOpt.Prefix = alloc.GenKey(C_Hook, 3973050528)
+	iter := txn.NewIterator(iterOpt)
+	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
+		_ = iter.Item().Value(func(val []byte) error {
+			m := &Hook{}
+			err := m.Unmarshal(val)
+			if err != nil {
+				return err
+			}
+			if !cb(m) {
+				exitLoop = true
+			}
+			return nil
+		})
+		if exitLoop {
+			break
+		}
+	}
+	iter.Close()
+	return nil
+}
+
 func ListHookByClientID(clientID []byte, offsetID []byte, lo *kv.ListOption) ([]*Hook, error) {
 	alloc := kv.NewAllocator()
 	defer alloc.ReleaseAll()
@@ -285,9 +315,9 @@ func ListHookByClientID(clientID []byte, offsetID []byte, lo *kv.ListOption) ([]
 	res := make([]*Hook, 0, lo.Limit())
 	err := kv.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey(C_Hook, 3973050528, clientID)
+		opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey(C_Hook, 3973050528, clientID, offsetID)
+		osk := alloc.GenKey('M', C_Hook, 3973050528, clientID, offsetID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -321,9 +351,9 @@ func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *kv.ListOptio
 	res := make([]*Hook, 0, lo.Limit())
 	err := kv.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey(C_Hook, 3467894716, callbackUrl)
+		opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey(C_Hook, 3467894716, callbackUrl, offsetID)
+		osk := alloc.GenKey('M', C_Hook, 3467894716, callbackUrl, offsetID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -350,9 +380,15 @@ func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *kv.ListOptio
 	return res, err
 }
 
-func IterHookByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, cb func(m *Hook)) error {
+func IterHookByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, cb func(m *Hook) bool) error {
+	if alloc == nil {
+		alloc = kv.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
 	opt := badger.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey(C_Hook, 3973050528, clientID)
+	opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -361,17 +397,28 @@ func IterHookByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, c
 			if err != nil {
 				return err
 			}
-			cb(m)
+			if !cb(m) {
+				exitLoop = true
+			}
 			return nil
 		})
+		if exitLoop {
+			break
+		}
 	}
 	iter.Close()
 	return nil
 }
 
-func IterHookByCallbackUrl(txn *badger.Txn, alloc *kv.Allocator, callbackUrl []byte, cb func(m *Hook)) error {
+func IterHookByCallbackUrl(txn *badger.Txn, alloc *kv.Allocator, callbackUrl []byte, cb func(m *Hook) bool) error {
+	if alloc == nil {
+		alloc = kv.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
 	opt := badger.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey(C_Hook, 3467894716, callbackUrl)
+	opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -380,9 +427,14 @@ func IterHookByCallbackUrl(txn *badger.Txn, alloc *kv.Allocator, callbackUrl []b
 			if err != nil {
 				return err
 			}
-			cb(m)
+			if !cb(m) {
+				exitLoop = true
+			}
 			return nil
 		})
+		if exitLoop {
+			break
+		}
 	}
 	iter.Close()
 	return nil
@@ -396,7 +448,7 @@ func SaveHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *HookHolder) 
 
 	// save entry
 	b := alloc.GenValue(m)
-	key := alloc.GenKey(C_HookHolder, 3973050528, m.ClientID, m.ID)
+	key := alloc.GenKey('M', C_HookHolder, 3973050528, m.ClientID, m.ID)
 	err = txn.Set(key, b)
 	if err != nil {
 		return
@@ -420,7 +472,7 @@ func ReadHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte
 		defer alloc.ReleaseAll()
 	}
 
-	item, err := txn.Get(alloc.GenKey(C_HookHolder, 3973050528, clientID, id))
+	item, err := txn.Get(alloc.GenKey('M', C_HookHolder, 3973050528, clientID, id))
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +498,7 @@ func ReadHookHolder(clientID []byte, id []byte, m *HookHolder) (*HookHolder, err
 }
 
 func DeleteHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id []byte) error {
-	err := txn.Delete(alloc.GenKey(C_HookHolder, 3973050528, clientID, id))
+	err := txn.Delete(alloc.GenKey('M', C_HookHolder, 3973050528, clientID, id))
 	if err != nil {
 		return err
 	}
@@ -474,7 +526,7 @@ func ListHookHolder(
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey(C_HookHolder, 3973050528)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey(C_HookHolder, 3973050528, offsetClientID)
+		osk := alloc.GenKey('M', C_HookHolder, 3973050528, offsetClientID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -503,6 +555,36 @@ func ListHookHolder(
 	return res, err
 }
 
+func IterHookHolders(txn *badger.Txn, alloc *kv.Allocator, cb func(m *HookHolder) bool) error {
+	if alloc == nil {
+		alloc = kv.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
+	iterOpt := badger.DefaultIteratorOptions
+	iterOpt.Prefix = alloc.GenKey(C_HookHolder, 3973050528)
+	iter := txn.NewIterator(iterOpt)
+	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
+		_ = iter.Item().Value(func(val []byte) error {
+			m := &HookHolder{}
+			err := m.Unmarshal(val)
+			if err != nil {
+				return err
+			}
+			if !cb(m) {
+				exitLoop = true
+			}
+			return nil
+		})
+		if exitLoop {
+			break
+		}
+	}
+	iter.Close()
+	return nil
+}
+
 func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *kv.ListOption) ([]*HookHolder, error) {
 	alloc := kv.NewAllocator()
 	defer alloc.ReleaseAll()
@@ -510,9 +592,9 @@ func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *kv.ListOptio
 	res := make([]*HookHolder, 0, lo.Limit())
 	err := kv.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey(C_HookHolder, 3973050528, clientID)
+		opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey(C_HookHolder, 3973050528, clientID, offsetID)
+		osk := alloc.GenKey('M', C_HookHolder, 3973050528, clientID, offsetID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -539,9 +621,15 @@ func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *kv.ListOptio
 	return res, err
 }
 
-func IterHookHolderByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, cb func(m *HookHolder)) error {
+func IterHookHolderByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, cb func(m *HookHolder) bool) error {
+	if alloc == nil {
+		alloc = kv.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
 	opt := badger.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey(C_HookHolder, 3973050528, clientID)
+	opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -550,9 +638,14 @@ func IterHookHolderByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []b
 			if err != nil {
 				return err
 			}
-			cb(m)
+			if !cb(m) {
+				exitLoop = true
+			}
 			return nil
 		})
+		if exitLoop {
+			break
+		}
 	}
 	iter.Close()
 	return nil

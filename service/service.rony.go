@@ -341,31 +341,21 @@ func (c *ClockClient) HookDelete(req *HookDeleteRequest, kvs ...*rony.KeyValue) 
 	}
 }
 
-func prepareClockCommand(cmd *cobra.Command, header map[string]string) (*ClockClient, error) {
+func prepareClockCommand(cmd *cobra.Command, c edgec.Client) (*ClockClient, error) {
 	// Bind the current flags to registered flags in config package
 	err := config.BindCmdFlags(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	httpC := edgec.NewHttp(edgec.HttpConfig{
-		Name:         "Rony Client",
-		SeedHostPort: fmt.Sprintf("%s:%d", config.GetString("host"), config.GetInt("port")),
-		Header:       header,
-	})
-
-	err = httpC.Start()
-	if err != nil {
-		return nil, err
-	}
-	return NewClockClient(httpC), nil
+	return NewClockClient(c), nil
 }
 
-var genHookSetCmd = func(h IClockCli, header map[string]string) *cobra.Command {
+var genHookSetCmd = func(h IClockCli, c edgec.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "hook-set",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cli, err := prepareClockCommand(cmd, header)
+			cli, err := prepareClockCommand(cmd, c)
 			if err != nil {
 				return err
 			}
@@ -381,11 +371,11 @@ var genHookSetCmd = func(h IClockCli, header map[string]string) *cobra.Command {
 	return cmd
 }
 
-var genHookDeleteCmd = func(h IClockCli, header map[string]string) *cobra.Command {
+var genHookDeleteCmd = func(h IClockCli, c edgec.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "hook-delete",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cli, err := prepareClockCommand(cmd, header)
+			cli, err := prepareClockCommand(cmd, c)
 			if err != nil {
 				return err
 			}
@@ -403,12 +393,8 @@ type IClockCli interface {
 	HookDelete(cli *ClockClient, cmd *cobra.Command, args []string) error
 }
 
-func RegisterClockCli(h IClockCli, header map[string]string, rootCmd *cobra.Command) {
-	config.SetPersistentFlags(rootCmd,
-		config.StringFlag("host", "127.0.0.1", "the seed host's address"),
-		config.StringFlag("port", "80", "the seed host's port"),
-	)
+func RegisterClockCli(h IClockCli, c edgec.Client, rootCmd *cobra.Command) {
 	rootCmd.AddCommand(
-		genHookSetCmd(h, header), genHookDeleteCmd(h, header),
+		genHookSetCmd(h, c), genHookDeleteCmd(h, c),
 	)
 }
