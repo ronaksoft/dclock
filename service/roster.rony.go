@@ -4,6 +4,7 @@ package service
 
 import (
 	fmt "fmt"
+	model "github.com/ronaksoft/dclock/model"
 	rony "github.com/ronaksoft/rony"
 	edge "github.com/ronaksoft/rony/edge"
 	edgec "github.com/ronaksoft/rony/edgec"
@@ -53,43 +54,6 @@ func (x *PageSetRequest) PushToContext(ctx *edge.RequestCtx) {
 	ctx.PushMessage(C_PageSetRequest, x)
 }
 
-const C_PageSetResponse int64 = 1377509016
-
-type poolPageSetResponse struct {
-	pool sync.Pool
-}
-
-func (p *poolPageSetResponse) Get() *PageSetResponse {
-	x, ok := p.pool.Get().(*PageSetResponse)
-	if !ok {
-		return &PageSetResponse{}
-	}
-	return x
-}
-
-func (p *poolPageSetResponse) Put(x *PageSetResponse) {
-	x.Successful = false
-	p.pool.Put(x)
-}
-
-var PoolPageSetResponse = poolPageSetResponse{}
-
-func (x *PageSetResponse) DeepCopy(z *PageSetResponse) {
-	z.Successful = x.Successful
-}
-
-func (x *PageSetResponse) Marshal() ([]byte, error) {
-	return proto.Marshal(x)
-}
-
-func (x *PageSetResponse) Unmarshal(b []byte) error {
-	return proto.UnmarshalOptions{}.Unmarshal(b, x)
-}
-
-func (x *PageSetResponse) PushToContext(ctx *edge.RequestCtx) {
-	ctx.PushMessage(C_PageSetResponse, x)
-}
-
 const C_PageGetRequest int64 = 1934762073
 
 type poolPageGetRequest struct {
@@ -131,58 +95,19 @@ func (x *PageGetRequest) PushToContext(ctx *edge.RequestCtx) {
 	ctx.PushMessage(C_PageGetRequest, x)
 }
 
-const C_PageGetResponse int64 = 1278519761
-
-type poolPageGetResponse struct {
-	pool sync.Pool
-}
-
-func (p *poolPageGetResponse) Get() *PageGetResponse {
-	x, ok := p.pool.Get().(*PageGetResponse)
-	if !ok {
-		return &PageGetResponse{}
-	}
-	return x
-}
-
-func (p *poolPageGetResponse) Put(x *PageGetResponse) {
-	x.ReplicaSet = 0
-	p.pool.Put(x)
-}
-
-var PoolPageGetResponse = poolPageGetResponse{}
-
-func (x *PageGetResponse) DeepCopy(z *PageGetResponse) {
-	z.ReplicaSet = x.ReplicaSet
-}
-
-func (x *PageGetResponse) Marshal() ([]byte, error) {
-	return proto.Marshal(x)
-}
-
-func (x *PageGetResponse) Unmarshal(b []byte) error {
-	return proto.UnmarshalOptions{}.Unmarshal(b, x)
-}
-
-func (x *PageGetResponse) PushToContext(ctx *edge.RequestCtx) {
-	ctx.PushMessage(C_PageGetResponse, x)
-}
-
 const C_PageGet int64 = 1624045528
 const C_PageSet int64 = 2078538868
 
 func init() {
 	registry.RegisterConstructor(1561788875, "PageSetRequest")
-	registry.RegisterConstructor(1377509016, "PageSetResponse")
 	registry.RegisterConstructor(1934762073, "PageGetRequest")
-	registry.RegisterConstructor(1278519761, "PageGetResponse")
 	registry.RegisterConstructor(1624045528, "PageGet")
 	registry.RegisterConstructor(2078538868, "PageSet")
 }
 
 type IRoster interface {
-	PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *PageSetResponse)
-	PageSet(ctx *edge.RequestCtx, req *PageSetRequest, res *PageSetResponse)
+	PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *model.Page)
+	PageSet(ctx *edge.RequestCtx, req *PageSetRequest, res *model.Page)
 }
 
 type rosterWrapper struct {
@@ -192,8 +117,8 @@ type rosterWrapper struct {
 func (sw *rosterWrapper) pageGetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
 	req := PoolPageGetRequest.Get()
 	defer PoolPageGetRequest.Put(req)
-	res := PoolPageSetResponse.Get()
-	defer PoolPageSetResponse.Put(res)
+	res := model.PoolPage.Get()
+	defer model.PoolPage.Put(res)
 	err := proto.UnmarshalOptions{Merge: true}.Unmarshal(in.Message, req)
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInvalid, rony.ErrItemRequest)
@@ -202,15 +127,15 @@ func (sw *rosterWrapper) pageGetWrapper(ctx *edge.RequestCtx, in *rony.MessageEn
 
 	sw.h.PageGet(ctx, req, res)
 	if !ctx.Stopped() {
-		ctx.PushMessage(C_PageSetResponse, res)
+		ctx.PushMessage(model.C_Page, res)
 	}
 }
 
 func (sw *rosterWrapper) pageSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
 	req := PoolPageSetRequest.Get()
 	defer PoolPageSetRequest.Put(req)
-	res := PoolPageSetResponse.Get()
-	defer PoolPageSetResponse.Put(res)
+	res := model.PoolPage.Get()
+	defer model.PoolPage.Put(res)
 	err := proto.UnmarshalOptions{Merge: true}.Unmarshal(in.Message, req)
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInvalid, rony.ErrItemRequest)
@@ -219,7 +144,7 @@ func (sw *rosterWrapper) pageSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEn
 
 	sw.h.PageSet(ctx, req, res)
 	if !ctx.Stopped() {
-		ctx.PushMessage(C_PageSetResponse, res)
+		ctx.PushMessage(model.C_Page, res)
 	}
 }
 
@@ -235,7 +160,7 @@ func RegisterRoster(h IRoster, e *edge.Server, ho *edge.HandlerOptions) {
 	w.Register(e, ho)
 }
 
-func ExecuteRemotePageGet(ctx *edge.RequestCtx, replicaSet uint64, req *PageGetRequest, res *PageSetResponse, kvs ...*rony.KeyValue) error {
+func ExecuteRemotePageGet(ctx *edge.RequestCtx, replicaSet uint64, req *PageGetRequest, res *model.Page, kvs ...*rony.KeyValue) error {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
@@ -247,7 +172,7 @@ func ExecuteRemotePageGet(ctx *edge.RequestCtx, replicaSet uint64, req *PageGetR
 	}
 
 	switch in.GetConstructor() {
-	case C_PageSetResponse:
+	case model.C_Page:
 		_ = res.Unmarshal(in.GetMessage())
 		return nil
 	case rony.C_Error:
@@ -259,7 +184,7 @@ func ExecuteRemotePageGet(ctx *edge.RequestCtx, replicaSet uint64, req *PageGetR
 	}
 }
 
-func ExecuteRemotePageSet(ctx *edge.RequestCtx, replicaSet uint64, req *PageSetRequest, res *PageSetResponse, kvs ...*rony.KeyValue) error {
+func ExecuteRemotePageSet(ctx *edge.RequestCtx, replicaSet uint64, req *PageSetRequest, res *model.Page, kvs ...*rony.KeyValue) error {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
@@ -271,7 +196,7 @@ func ExecuteRemotePageSet(ctx *edge.RequestCtx, replicaSet uint64, req *PageSetR
 	}
 
 	switch in.GetConstructor() {
-	case C_PageSetResponse:
+	case model.C_Page:
 		_ = res.Unmarshal(in.GetMessage())
 		return nil
 	case rony.C_Error:
@@ -293,7 +218,7 @@ func NewRosterClient(ec edgec.Client) *RosterClient {
 	}
 }
 
-func (c *RosterClient) PageGet(req *PageGetRequest, kvs ...*rony.KeyValue) (*PageSetResponse, error) {
+func (c *RosterClient) PageGet(req *PageGetRequest, kvs ...*rony.KeyValue) (*model.Page, error) {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
@@ -304,8 +229,8 @@ func (c *RosterClient) PageGet(req *PageGetRequest, kvs ...*rony.KeyValue) (*Pag
 		return nil, err
 	}
 	switch in.GetConstructor() {
-	case C_PageSetResponse:
-		x := &PageSetResponse{}
+	case model.C_Page:
+		x := &model.Page{}
 		_ = proto.Unmarshal(in.Message, x)
 		return x, nil
 	case rony.C_Error:
@@ -317,7 +242,7 @@ func (c *RosterClient) PageGet(req *PageGetRequest, kvs ...*rony.KeyValue) (*Pag
 	}
 }
 
-func (c *RosterClient) PageSet(req *PageSetRequest, kvs ...*rony.KeyValue) (*PageSetResponse, error) {
+func (c *RosterClient) PageSet(req *PageSetRequest, kvs ...*rony.KeyValue) (*model.Page, error) {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
@@ -328,8 +253,8 @@ func (c *RosterClient) PageSet(req *PageSetRequest, kvs ...*rony.KeyValue) (*Pag
 		return nil, err
 	}
 	switch in.GetConstructor() {
-	case C_PageSetResponse:
-		x := &PageSetResponse{}
+	case model.C_Page:
+		x := &model.Page{}
 		_ = proto.Unmarshal(in.Message, x)
 		return x, nil
 	case rony.C_Error:

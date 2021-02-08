@@ -7,7 +7,6 @@ import (
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
 	"github.com/ronaksoft/rony/repo/kv"
-	"github.com/ronaksoft/rony/tools"
 	"hash/crc32"
 )
 
@@ -26,7 +25,15 @@ func init() {
 
 }
 
-type Clock struct{}
+type Clock struct {
+	es *edge.Server
+}
+
+func NewClock(es *edge.Server) *Clock {
+	return &Clock{
+		es: es,
+	}
+}
 
 func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse) {
 	h := &model.Hook{
@@ -44,9 +51,21 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		return
 	}
 
-	ctxReplica := uint64(crc32.ChecksumIEEE(tools.StrToByte(ctx.GetString("ClientID", "")))%uint32(ctx.Cluster().TotalReplicas()) + 1)
-	if ctxReplica != ctx.Cluster().ReplicaSet() {
-		err = ExecuteRemoteHookSet(ctx, ctxReplica, req, res,
+	tReq := &PageGetRequest{
+		Page:       crc32.ChecksumIEEE(req.GetUniqueID()),
+		ReplicaSet: c.es.Cluster().ReplicaSet(),
+		CreateNew:  true,
+	}
+	tRes := &model.Page{}
+	err = ExecuteRemotePageGet(ctx, 1, tReq, tRes)
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
+
+	// ctxReplica := uint64(crc32.ChecksumIEEE(tools.StrToByte(ctx.GetString("ClientID", "")))%uint32(ctx.Cluster().TotalReplicas()) + 1)
+	if tRes.GetReplicaSet() != ctx.Cluster().ReplicaSet() {
+		err = ExecuteRemoteHookSet(ctx, tRes.GetReplicaSet(), req, res,
 			&rony.KeyValue{
 				Key:   "ClientID",
 				Value: ctx.GetString("ClientID", ""),
@@ -81,6 +100,18 @@ func (c *Clock) HookDelete(ctx *edge.RequestCtx, req *HookDeleteRequest, res *Ho
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return
 	}
+
+	// tReq := &PageGetRequest{
+	// 	Page:     crc32.ChecksumIEEE(req.GetUniqueID()),
+	// 	ReplicaSet: c.es.Cluster().ReplicaSet(),
+	// 	CreateNew: true,
+	// }
+	// tRes := &model.Page{}
+	// err = ExecuteRemotePageGet(ctx, 1, tReq, tRes)
+	// if err != nil {
+	// 	ctx.PushError(rony.ErrCodeInternal, err.Error())
+	// 	return
+	// }
 
 	err = model.DeleteHook(nil, req.GetUniqueID())
 	if err != nil {

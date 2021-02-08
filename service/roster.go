@@ -1,7 +1,11 @@
 package service
 
 import (
+	"github.com/dgraph-io/badger/v3"
+	"github.com/ronaksoft/dclock/model"
+	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
+	"github.com/ronaksoft/rony/repo/kv"
 )
 
 /*
@@ -29,10 +33,49 @@ func NewRoster(es *edge.Server) *Roster {
 	}
 }
 
-func (r *Roster) PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *PageSetResponse) {
-	panic("implement me")
+func (r *Roster) PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *model.Page) {
+	if ctx.Kind() == edge.GatewayMessage {
+		ctx.PushError(rony.ErrCodeUnavailable, rony.ErrItemRequest)
+		return
+	}
+	alloc := kv.NewAllocator()
+	defer alloc.ReleaseAll()
+
+	err := kv.View(func(txn *badger.Txn) (err error) {
+		_, err = model.ReadPageWithTxn(txn, alloc, req.GetPage(), res)
+		if err != nil && !req.GetCreateNew() {
+			return err
+		}
+		res.ReplicaSet = req.GetReplicaSet()
+		res.ID = req.GetPage()
+		return model.SavePageWithTxn(txn, alloc, res)
+	})
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
 }
 
-func (r *Roster) PageSet(ctx *edge.RequestCtx, req *PageSetRequest, res *PageSetResponse) {
-	panic("implement me")
+func (r *Roster) PageSet(ctx *edge.RequestCtx, req *PageSetRequest, res *model.Page) {
+	if ctx.Kind() == edge.GatewayMessage {
+		ctx.PushError(rony.ErrCodeUnavailable, rony.ErrItemRequest)
+		return
+	}
+
+	alloc := kv.NewAllocator()
+	defer alloc.ReleaseAll()
+
+	err := kv.Update(func(txn *badger.Txn) (err error) {
+		_, err = model.ReadPageWithTxn(txn, alloc, req.GetPage(), res)
+		if err == nil && !req.GetReplace() {
+			return nil
+		}
+		res.ReplicaSet = req.GetReplicaSet()
+		res.ID = req.GetPage()
+		return model.SavePageWithTxn(txn, alloc, res)
+	})
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
 }

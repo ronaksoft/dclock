@@ -1,0 +1,15 @@
+syntax = "proto3";
+package model;
+import "github.com/ronaksoft/rony/options.proto";
+option go_package = "github.com/ronaksoft/dclock/model";
+option (rony_repo) = "local";
+
+// Page
+message Page {
+    option (rony_aggregate) = true;
+    option (rony_aggregate_type) = "crud";
+    option (rony_aggregate_table) = "(ID)";
+    option (rony_aggregate_view) = "(ReplicaSet, ID)";
+    uint32 ID = 1;
+    uint64 ReplicaSet = 2;
+}
