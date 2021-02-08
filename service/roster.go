@@ -41,7 +41,7 @@ func (r *Roster) PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *model.P
 	alloc := kv.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	err := kv.View(func(txn *badger.Txn) (err error) {
+	err := kv.Update(func(txn *badger.Txn) (err error) {
 		_, err = model.ReadPageWithTxn(txn, alloc, req.GetPage(), res)
 		if err != nil && !req.GetCreateNew() {
 			return err

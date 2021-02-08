@@ -5,6 +5,7 @@ import (
 	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/config"
+	"github.com/ronaksoft/rony/edgec"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
 )
@@ -20,14 +21,26 @@ import (
 
 var ClientCmd = &cobra.Command{
 	Use: "client",
-	Run: func(cmd *cobra.Command, args []string) {
-		rony.SetLogLevel(-1)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Bind the current flags to registered flags in config package
+		err := config.BindCmdFlags(cmd)
+		if err != nil {
+			return err
+		}
 
 		// Register Client Commands
-		service.RegisterClockCli(&ClockCli{}, nil, ClientInteractiveCmd)
+		c := edgec.NewHttp(edgec.HttpConfig{
+			SeedHostPort: config.GetString("hostPort"),
+		})
+		err = c.Start()
+		if err != nil {
+			return err
+		}
+		service.RegisterClockCli(&ClockCli{}, c, ClientInteractiveCmd)
 
 		p := prompt.New(tools.PromptExecutor(ClientInteractiveCmd), tools.PromptCompleter(ClientInteractiveCmd))
 		p.Run()
+		return nil
 	},
 }
 

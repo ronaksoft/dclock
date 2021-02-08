@@ -37,6 +37,11 @@ func main() {
 		config.BoolFlag("bootstrap", false, ""),
 	)
 
+	config.SetPersistentFlags(ClientCmd,
+		config.StringFlag("hostPort", "127.0.0.1:81", ""),
+		config.StringFlag("clientID", "989121228718", ""),
+	)
+
 	// Execute the cli command
 	RootCmd.AddCommand(ServerCmd, ClientCmd)
 

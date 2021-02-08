@@ -34,7 +34,6 @@ var ServerCmd = &cobra.Command{
 		// Bind the current flags to registered flags in config package
 		err := config.BindCmdFlags(cmd)
 		if err != nil {
-
 			return err
 		}
 
@@ -75,7 +74,7 @@ var ServerCmd = &cobra.Command{
 		)
 
 		// Register the service into the edge server
-		service.RegisterClock(&service.Clock{}, edgeServer, edge.NewHandlerOptions().SetPreHandlers(Authorize, Log))
+		service.RegisterClock(service.NewClock(edgeServer), edgeServer, edge.NewHandlerOptions().SetPreHandlers(Authorize, Log))
 		if edgeServer.Cluster().ReplicaSet() == 1 {
 			service.RegisterRoster(service.NewRoster(edgeServer), edgeServer, edge.NewHandlerOptions().SetPreHandlers(Log))
 		}
