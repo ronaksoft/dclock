@@ -249,3 +249,69 @@ func IterPages(txn *badger.Txn, alloc *kv.Allocator, cb func(m *Page) bool) erro
 	iter.Close()
 	return nil
 }
+
+func ListPageByReplicaSet(replicaSet uint64, offsetID uint32, lo *kv.ListOption) ([]*Page, error) {
+	alloc := kv.NewAllocator()
+	defer alloc.ReleaseAll()
+
+	res := make([]*Page, 0, lo.Limit())
+	err := kv.View(func(txn *badger.Txn) error {
+		opt := badger.DefaultIteratorOptions
+		opt.Prefix = alloc.GenKey('M', C_Page, 1040696757, replicaSet)
+		opt.Reverse = lo.Backward()
+		osk := alloc.GenKey('M', C_Page, 1040696757, replicaSet, offsetID)
+		iter := txn.NewIterator(opt)
+		offset := lo.Skip()
+		limit := lo.Limit()
+		for iter.Seek(osk); iter.ValidForPrefix(opt.Prefix); iter.Next() {
+			if offset--; offset >= 0 {
+				continue
+			}
+			if limit--; limit < 0 {
+				break
+			}
+			_ = iter.Item().Value(func(val []byte) error {
+				m := &Page{}
+				err := m.Unmarshal(val)
+				if err != nil {
+					return err
+				}
+				res = append(res, m)
+				return nil
+			})
+		}
+		iter.Close()
+		return nil
+	})
+	return res, err
+}
+
+func IterPageByReplicaSet(txn *badger.Txn, alloc *kv.Allocator, replicaSet uint64, cb func(m *Page) bool) error {
+	if alloc == nil {
+		alloc = kv.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
+	opt := badger.DefaultIteratorOptions
+	opt.Prefix = alloc.GenKey('M', C_Page, 1040696757, replicaSet)
+	iter := txn.NewIterator(opt)
+	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
+		_ = iter.Item().Value(func(val []byte) error {
+			m := &Page{}
+			err := m.Unmarshal(val)
+			if err != nil {
+				return err
+			}
+			if !cb(m) {
+				exitLoop = true
+			}
+			return nil
+		})
+		if exitLoop {
+			break
+		}
+	}
+	iter.Close()
+	return nil
+}

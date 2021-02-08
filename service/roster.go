@@ -33,8 +33,27 @@ func NewRoster(es *edge.Server) *Roster {
 	}
 }
 
+func (r *Roster) PageList(ctx *edge.RequestCtx, req *PageListRequest, res *PagesMany) {
+	if r.es.Cluster().ReplicaSet() != 1 {
+		err := ExecuteRemotePageList(ctx, 1, req, res)
+		if err != nil {
+			ctx.PushError(rony.ErrCodeInternal, err.Error())
+		}
+		return
+	}
+	pages, err := model.ListPageByReplicaSet(req.GetReplicaSet(), 0, kv.NewListOption())
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInternal, err.Error())
+		return
+	}
+
+	for _, p := range pages {
+		res.Pages = append(res.Pages, p)
+	}
+}
+
 func (r *Roster) PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *model.Page) {
-	if ctx.Kind() == edge.GatewayMessage {
+	if r.es.Cluster().ReplicaSet() != 1 {
 		ctx.PushError(rony.ErrCodeUnavailable, rony.ErrItemRequest)
 		return
 	}
@@ -57,7 +76,7 @@ func (r *Roster) PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *model.P
 }
 
 func (r *Roster) PageSet(ctx *edge.RequestCtx, req *PageSetRequest, res *model.Page) {
-	if ctx.Kind() == edge.GatewayMessage {
+	if r.es.Cluster().ReplicaSet() != 1 {
 		ctx.PushError(rony.ErrCodeUnavailable, rony.ErrItemRequest)
 		return
 	}

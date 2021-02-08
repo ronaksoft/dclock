@@ -6,9 +6,11 @@ import (
 	fmt "fmt"
 	model "github.com/ronaksoft/dclock/model"
 	rony "github.com/ronaksoft/rony"
+	config "github.com/ronaksoft/rony/config"
 	edge "github.com/ronaksoft/rony/edge"
 	edgec "github.com/ronaksoft/rony/edgec"
 	registry "github.com/ronaksoft/rony/registry"
+	cobra "github.com/spf13/cobra"
 	proto "google.golang.org/protobuf/proto"
 	sync "sync"
 )
@@ -95,19 +97,104 @@ func (x *PageGetRequest) PushToContext(ctx *edge.RequestCtx) {
 	ctx.PushMessage(C_PageGetRequest, x)
 }
 
+const C_PageListRequest int64 = 4064011009
+
+type poolPageListRequest struct {
+	pool sync.Pool
+}
+
+func (p *poolPageListRequest) Get() *PageListRequest {
+	x, ok := p.pool.Get().(*PageListRequest)
+	if !ok {
+		return &PageListRequest{}
+	}
+	return x
+}
+
+func (p *poolPageListRequest) Put(x *PageListRequest) {
+	x.ReplicaSet = 0
+	p.pool.Put(x)
+}
+
+var PoolPageListRequest = poolPageListRequest{}
+
+func (x *PageListRequest) DeepCopy(z *PageListRequest) {
+	z.ReplicaSet = x.ReplicaSet
+}
+
+func (x *PageListRequest) Marshal() ([]byte, error) {
+	return proto.Marshal(x)
+}
+
+func (x *PageListRequest) Unmarshal(b []byte) error {
+	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *PageListRequest) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_PageListRequest, x)
+}
+
+const C_PagesMany int64 = 3532401958
+
+type poolPagesMany struct {
+	pool sync.Pool
+}
+
+func (p *poolPagesMany) Get() *PagesMany {
+	x, ok := p.pool.Get().(*PagesMany)
+	if !ok {
+		return &PagesMany{}
+	}
+	return x
+}
+
+func (p *poolPagesMany) Put(x *PagesMany) {
+	x.Pages = x.Pages[:0]
+	p.pool.Put(x)
+}
+
+var PoolPagesMany = poolPagesMany{}
+
+func (x *PagesMany) DeepCopy(z *PagesMany) {
+	for idx := range x.Pages {
+		if x.Pages[idx] != nil {
+			xx := model.PoolPage.Get()
+			x.Pages[idx].DeepCopy(xx)
+			z.Pages = append(z.Pages, xx)
+		}
+	}
+}
+
+func (x *PagesMany) Marshal() ([]byte, error) {
+	return proto.Marshal(x)
+}
+
+func (x *PagesMany) Unmarshal(b []byte) error {
+	return proto.UnmarshalOptions{}.Unmarshal(b, x)
+}
+
+func (x *PagesMany) PushToContext(ctx *edge.RequestCtx) {
+	ctx.PushMessage(C_PagesMany, x)
+}
+
 const C_PageGet int64 = 1624045528
 const C_PageSet int64 = 2078538868
+const C_PageList int64 = 2623022107
 
 func init() {
 	registry.RegisterConstructor(1561788875, "PageSetRequest")
 	registry.RegisterConstructor(1934762073, "PageGetRequest")
+	registry.RegisterConstructor(4064011009, "PageListRequest")
+	registry.RegisterConstructor(3532401958, "PagesMany")
 	registry.RegisterConstructor(1624045528, "PageGet")
 	registry.RegisterConstructor(2078538868, "PageSet")
+	registry.RegisterConstructor(2623022107, "PageList")
 }
 
 type IRoster interface {
 	PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *model.Page)
 	PageSet(ctx *edge.RequestCtx, req *PageSetRequest, res *model.Page)
+	PageList(ctx *edge.RequestCtx, req *PageListRequest, res *PagesMany)
 }
 
 type rosterWrapper struct {
@@ -148,9 +235,27 @@ func (sw *rosterWrapper) pageSetWrapper(ctx *edge.RequestCtx, in *rony.MessageEn
 	}
 }
 
+func (sw *rosterWrapper) pageListWrapper(ctx *edge.RequestCtx, in *rony.MessageEnvelope) {
+	req := PoolPageListRequest.Get()
+	defer PoolPageListRequest.Put(req)
+	res := PoolPagesMany.Get()
+	defer PoolPagesMany.Put(res)
+	err := proto.UnmarshalOptions{Merge: true}.Unmarshal(in.Message, req)
+	if err != nil {
+		ctx.PushError(rony.ErrCodeInvalid, rony.ErrItemRequest)
+		return
+	}
+
+	sw.h.PageList(ctx, req, res)
+	if !ctx.Stopped() {
+		ctx.PushMessage(C_PagesMany, res)
+	}
+}
+
 func (sw *rosterWrapper) Register(e *edge.Server, ho *edge.HandlerOptions) {
 	e.SetHandlers(C_PageGet, true, ho.ApplyTo(sw.pageGetWrapper)...)
 	e.SetHandlers(C_PageSet, true, ho.ApplyTo(sw.pageSetWrapper)...)
+	e.SetHandlers(C_PageList, true, ho.ApplyTo(sw.pageListWrapper)...)
 }
 
 func RegisterRoster(h IRoster, e *edge.Server, ho *edge.HandlerOptions) {
@@ -208,6 +313,30 @@ func ExecuteRemotePageSet(ctx *edge.RequestCtx, replicaSet uint64, req *PageSetR
 	}
 }
 
+func ExecuteRemotePageList(ctx *edge.RequestCtx, replicaSet uint64, req *PageListRequest, res *PagesMany, kvs ...*rony.KeyValue) error {
+	out := rony.PoolMessageEnvelope.Get()
+	defer rony.PoolMessageEnvelope.Put(out)
+	in := rony.PoolMessageEnvelope.Get()
+	defer rony.PoolMessageEnvelope.Put(in)
+	out.Fill(ctx.ReqID(), C_PageList, req, kvs...)
+	err := ctx.ExecuteRemote(replicaSet, true, out, in)
+	if err != nil {
+		return err
+	}
+
+	switch in.GetConstructor() {
+	case C_PagesMany:
+		_ = res.Unmarshal(in.GetMessage())
+		return nil
+	case rony.C_Error:
+		x := &rony.Error{}
+		_ = x.Unmarshal(in.GetMessage())
+		return x
+	default:
+		return edge.ErrUnexpectedTunnelResponse
+	}
+}
+
 type RosterClient struct {
 	c edgec.Client
 }
@@ -218,19 +347,19 @@ func NewRosterClient(ec edgec.Client) *RosterClient {
 	}
 }
 
-func (c *RosterClient) PageGet(req *PageGetRequest, kvs ...*rony.KeyValue) (*model.Page, error) {
+func (c *RosterClient) PageList(req *PageListRequest, kvs ...*rony.KeyValue) (*PagesMany, error) {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(c.c.GetRequestID(), C_PageGet, req, kvs...)
+	out.Fill(c.c.GetRequestID(), C_PageList, req, kvs...)
 	err := c.c.Send(out, in, true)
 	if err != nil {
 		return nil, err
 	}
 	switch in.GetConstructor() {
-	case model.C_Page:
-		x := &model.Page{}
+	case C_PagesMany:
+		x := &PagesMany{}
 		_ = proto.Unmarshal(in.Message, x)
 		return x, nil
 	case rony.C_Error:
@@ -242,26 +371,39 @@ func (c *RosterClient) PageGet(req *PageGetRequest, kvs ...*rony.KeyValue) (*mod
 	}
 }
 
-func (c *RosterClient) PageSet(req *PageSetRequest, kvs ...*rony.KeyValue) (*model.Page, error) {
-	out := rony.PoolMessageEnvelope.Get()
-	defer rony.PoolMessageEnvelope.Put(out)
-	in := rony.PoolMessageEnvelope.Get()
-	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(c.c.GetRequestID(), C_PageSet, req, kvs...)
-	err := c.c.Send(out, in, true)
+func prepareRosterCommand(cmd *cobra.Command, c edgec.Client) (*RosterClient, error) {
+	// Bind the current flags to registered flags in config package
+	err := config.BindCmdFlags(cmd)
 	if err != nil {
 		return nil, err
 	}
-	switch in.GetConstructor() {
-	case model.C_Page:
-		x := &model.Page{}
-		_ = proto.Unmarshal(in.Message, x)
-		return x, nil
-	case rony.C_Error:
-		x := &rony.Error{}
-		_ = proto.Unmarshal(in.Message, x)
-		return nil, fmt.Errorf("%s:%s", x.GetCode(), x.GetItems())
-	default:
-		return nil, fmt.Errorf("unknown message: %d", in.GetConstructor())
+
+	return NewRosterClient(c), nil
+}
+
+var genPageListCmd = func(h IRosterCli, c edgec.Client) *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "page-list",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cli, err := prepareRosterCommand(cmd, c)
+			if err != nil {
+				return err
+			}
+			return h.PageList(cli, cmd, args)
+		},
 	}
+	config.SetFlags(cmd,
+		config.Uint64Flag("replicaSet", 0, ""),
+	)
+	return cmd
+}
+
+type IRosterCli interface {
+	PageList(cli *RosterClient, cmd *cobra.Command, args []string) error
+}
+
+func RegisterRosterCli(h IRosterCli, c edgec.Client, rootCmd *cobra.Command) {
+	rootCmd.AddCommand(
+		genPageListCmd(h, c),
+	)
 }
