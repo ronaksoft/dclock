@@ -1,0 +1,29 @@
+syntax = "proto3";
+package service;
+import "github.com/ronaksoft/rony/options.proto";
+option go_package = "github.com/ronaksoft/dclock/service";
+
+service Roster {
+    rpc PageGet (PageGetRequest) returns (PageSetResponse);
+    rpc PageSet (PageSetRequest) returns (PageSetResponse);
+}
+
+message PageSetRequest {
+    uint32 Page = 1;
+    uint64 ReplicaSet = 2;
+    bool Replace = 3;
+}
+
+message PageSetResponse {
+    bool Successful = 1;
+}
+
+message PageGetRequest {
+    uint32 Page = 1;
+    uint64 ReplicaSet = 2;
+    bool CreateNew = 3;
+}
+
+message PageGetResponse {
+    uint64 ReplicaSet = 1;
+}

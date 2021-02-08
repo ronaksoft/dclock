@@ -20,8 +20,8 @@ import (
    Copyright Ronak Software Group 2020
 */
 
-//go:generate protoc -I=. -I=.. -I=../vendor --go_out=paths=source_relative:. service.proto
-//go:generate protoc -I=. -I=.. -I=../vendor --gorony_out=paths=source_relative:. service.proto
+//go:generate protoc -I=. -I=.. -I=../vendor --go_out=paths=source_relative:. clock.proto
+//go:generate protoc -I=. -I=.. -I=../vendor --gorony_out=paths=source_relative:. clock.proto
 func init() {
 
 }
