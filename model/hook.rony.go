@@ -6,7 +6,7 @@ import (
 	badger "github.com/dgraph-io/badger/v3"
 	edge "github.com/ronaksoft/rony/edge"
 	registry "github.com/ronaksoft/rony/registry"
-	kv "github.com/ronaksoft/rony/repo/kv"
+	store "github.com/ronaksoft/rony/store"
 	proto "google.golang.org/protobuf/proto"
 	sync "sync"
 )
@@ -112,9 +112,9 @@ func init() {
 	registry.RegisterConstructor(226559863, "HookHolder")
 }
 
-func SaveHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *Hook) (err error) {
+func SaveHookWithTxn(txn *badger.Txn, alloc *store.Allocator, m *Hook) (err error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -137,16 +137,16 @@ func SaveHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *Hook) (err error) 
 }
 
 func SaveHook(m *Hook) error {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
-	return kv.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *badger.Txn) error {
 		return SaveHookWithTxn(txn, alloc, m)
 	})
 }
 
-func ReadHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id []byte, m *Hook) (*Hook, error) {
+func ReadHookWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *Hook) (*Hook, error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -161,23 +161,23 @@ func ReadHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id [
 }
 
 func ReadHook(clientID []byte, id []byte, m *Hook) (*Hook, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	if m == nil {
 		m = &Hook{}
 	}
 
-	err := kv.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *badger.Txn) (err error) {
 		m, err = ReadHookWithTxn(txn, alloc, clientID, id, m)
 		return err
 	})
 	return m, err
 }
 
-func ReadHookByCallbackUrlAndIDWithTxn(txn *badger.Txn, alloc *kv.Allocator, callbackUrl []byte, id []byte, m *Hook) (*Hook, error) {
+func ReadHookByCallbackUrlAndIDWithTxn(txn *badger.Txn, alloc *store.Allocator, callbackUrl []byte, id []byte, m *Hook) (*Hook, error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -192,19 +192,19 @@ func ReadHookByCallbackUrlAndIDWithTxn(txn *badger.Txn, alloc *kv.Allocator, cal
 }
 
 func ReadHookByCallbackUrlAndID(callbackUrl []byte, id []byte, m *Hook) (*Hook, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 	if m == nil {
 		m = &Hook{}
 	}
-	err := kv.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *badger.Txn) (err error) {
 		m, err = ReadHookByCallbackUrlAndIDWithTxn(txn, alloc, callbackUrl, id, m)
 		return err
 	})
 	return m, err
 }
 
-func DeleteHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id []byte) error {
+func DeleteHookWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
 	m := &Hook{}
 	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3973050528, clientID, id))
 	if err != nil {
@@ -230,22 +230,22 @@ func DeleteHookWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id
 }
 
 func DeleteHook(clientID []byte, id []byte) error {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	return kv.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *badger.Txn) error {
 		return DeleteHookWithTxn(txn, alloc, clientID, id)
 	})
 }
 
 func ListHook(
-	offsetClientID []byte, offsetID []byte, lo *kv.ListOption, cond func(m *Hook) bool,
+	offsetClientID []byte, offsetID []byte, lo *store.ListOption, cond func(m *Hook) bool,
 ) ([]*Hook, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	res := make([]*Hook, 0, lo.Limit())
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey(C_Hook, 3973050528)
 		opt.Reverse = lo.Backward()
@@ -278,9 +278,9 @@ func ListHook(
 	return res, err
 }
 
-func IterHooks(txn *badger.Txn, alloc *kv.Allocator, cb func(m *Hook) bool) error {
+func IterHooks(txn *badger.Txn, alloc *store.Allocator, cb func(m *Hook) bool) error {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -308,12 +308,12 @@ func IterHooks(txn *badger.Txn, alloc *kv.Allocator, cb func(m *Hook) bool) erro
 	return nil
 }
 
-func ListHookByClientID(clientID []byte, offsetID []byte, lo *kv.ListOption) ([]*Hook, error) {
-	alloc := kv.NewAllocator()
+func ListHookByClientID(clientID []byte, offsetID []byte, lo *store.ListOption) ([]*Hook, error) {
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	res := make([]*Hook, 0, lo.Limit())
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
@@ -344,12 +344,12 @@ func ListHookByClientID(clientID []byte, offsetID []byte, lo *kv.ListOption) ([]
 	return res, err
 }
 
-func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *kv.ListOption) ([]*Hook, error) {
-	alloc := kv.NewAllocator()
+func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *store.ListOption) ([]*Hook, error) {
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	res := make([]*Hook, 0, lo.Limit())
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
 		opt.Reverse = lo.Backward()
@@ -380,9 +380,9 @@ func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *kv.ListOptio
 	return res, err
 }
 
-func IterHookByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, cb func(m *Hook) bool) error {
+func IterHookByClientID(txn *badger.Txn, alloc *store.Allocator, clientID []byte, cb func(m *Hook) bool) error {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -410,9 +410,9 @@ func IterHookByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, c
 	return nil
 }
 
-func IterHookByCallbackUrl(txn *badger.Txn, alloc *kv.Allocator, callbackUrl []byte, cb func(m *Hook) bool) error {
+func IterHookByCallbackUrl(txn *badger.Txn, alloc *store.Allocator, callbackUrl []byte, cb func(m *Hook) bool) error {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -440,9 +440,9 @@ func IterHookByCallbackUrl(txn *badger.Txn, alloc *kv.Allocator, callbackUrl []b
 	return nil
 }
 
-func SaveHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *HookHolder) (err error) {
+func SaveHookHolderWithTxn(txn *badger.Txn, alloc *store.Allocator, m *HookHolder) (err error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -459,16 +459,16 @@ func SaveHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *HookHolder) 
 }
 
 func SaveHookHolder(m *HookHolder) error {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
-	return kv.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *badger.Txn) error {
 		return SaveHookHolderWithTxn(txn, alloc, m)
 	})
 }
 
-func ReadHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id []byte, m *HookHolder) (*HookHolder, error) {
+func ReadHookHolderWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *HookHolder) (*HookHolder, error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -483,21 +483,21 @@ func ReadHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte
 }
 
 func ReadHookHolder(clientID []byte, id []byte, m *HookHolder) (*HookHolder, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	if m == nil {
 		m = &HookHolder{}
 	}
 
-	err := kv.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *badger.Txn) (err error) {
 		m, err = ReadHookHolderWithTxn(txn, alloc, clientID, id, m)
 		return err
 	})
 	return m, err
 }
 
-func DeleteHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, id []byte) error {
+func DeleteHookHolderWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
 	err := txn.Delete(alloc.GenKey('M', C_HookHolder, 3973050528, clientID, id))
 	if err != nil {
 		return err
@@ -507,22 +507,22 @@ func DeleteHookHolderWithTxn(txn *badger.Txn, alloc *kv.Allocator, clientID []by
 }
 
 func DeleteHookHolder(clientID []byte, id []byte) error {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	return kv.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *badger.Txn) error {
 		return DeleteHookHolderWithTxn(txn, alloc, clientID, id)
 	})
 }
 
 func ListHookHolder(
-	offsetClientID []byte, offsetID []byte, lo *kv.ListOption, cond func(m *HookHolder) bool,
+	offsetClientID []byte, offsetID []byte, lo *store.ListOption, cond func(m *HookHolder) bool,
 ) ([]*HookHolder, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	res := make([]*HookHolder, 0, lo.Limit())
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey(C_HookHolder, 3973050528)
 		opt.Reverse = lo.Backward()
@@ -555,9 +555,9 @@ func ListHookHolder(
 	return res, err
 }
 
-func IterHookHolders(txn *badger.Txn, alloc *kv.Allocator, cb func(m *HookHolder) bool) error {
+func IterHookHolders(txn *badger.Txn, alloc *store.Allocator, cb func(m *HookHolder) bool) error {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -585,12 +585,12 @@ func IterHookHolders(txn *badger.Txn, alloc *kv.Allocator, cb func(m *HookHolder
 	return nil
 }
 
-func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *kv.ListOption) ([]*HookHolder, error) {
-	alloc := kv.NewAllocator()
+func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *store.ListOption) ([]*HookHolder, error) {
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	res := make([]*HookHolder, 0, lo.Limit())
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
@@ -621,9 +621,9 @@ func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *kv.ListOptio
 	return res, err
 }
 
-func IterHookHolderByClientID(txn *badger.Txn, alloc *kv.Allocator, clientID []byte, cb func(m *HookHolder) bool) error {
+func IterHookHolderByClientID(txn *badger.Txn, alloc *store.Allocator, clientID []byte, cb func(m *HookHolder) bool) error {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 

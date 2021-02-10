@@ -1,7 +1,7 @@
 package testenv
 
 import (
-	"github.com/ronaksoft/rony/repo/kv"
+	"github.com/ronaksoft/rony/store"
 	"os"
 )
 
@@ -15,7 +15,7 @@ import (
 */
 
 func Init() {
-	kvc := kv.DefaultConfig
+	kvc := store.DefaultConfig("./hdd")
 	_ = os.MkdirAll(kvc.DirPath, os.ModePerm)
-	kv.MustInit(kvc)
+	store.MustInit(kvc)
 }

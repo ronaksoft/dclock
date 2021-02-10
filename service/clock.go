@@ -6,7 +6,7 @@ import (
 	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
-	"github.com/ronaksoft/rony/repo/kv"
+	"github.com/ronaksoft/rony/store"
 	"hash/crc32"
 )
 
@@ -76,7 +76,7 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 			return
 		}
 	} else {
-		err = kv.Update(func(txn *badger.Txn) error {
+		err = store.Update(func(txn *badger.Txn) error {
 			key := make([]byte, 11+len(h.ID))
 			copy(key[:3], "CPP")
 			binary.BigEndian.PutUint64(key[3:11], uint64(req.Timestamp))

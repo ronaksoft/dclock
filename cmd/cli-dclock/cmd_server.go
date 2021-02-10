@@ -9,7 +9,7 @@ import (
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
 	"github.com/ronaksoft/rony/gateway"
-	"github.com/ronaksoft/rony/repo/kv"
+	"github.com/ronaksoft/rony/store"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
 	"github.com/valyala/fasthttp"
@@ -38,7 +38,7 @@ var ServerCmd = &cobra.Command{
 		}
 
 		// Initialize KV infrastructure
-		kv.MustInit(kv.Config{
+		store.MustInit(store.Config{
 			DirPath:             config.GetString("dataPath"),
 			ConflictRetries:     100,
 			ConflictMaxInterval: time.Millisecond,
@@ -49,6 +49,7 @@ var ServerCmd = &cobra.Command{
 		// Instantiate the edge server
 		edgeServer = edge.NewServer(
 			config.GetString("serverID"),
+			edge.WithDataDir(config.GetString("dataPath")),
 			edge.WithTcpGateway(edge.TcpGatewayConfig{
 				Concurrency:   runtime.NumCPU() * 100,
 				ListenAddress: config.GetString("gatewayListen"),
@@ -63,7 +64,6 @@ var ServerCmd = &cobra.Command{
 				ReplicaSet: config.GetUint64("replicaSet"),
 				Mode:       cluster.MultiReplica,
 				GossipPort: config.GetInt("gossipPort"),
-				DataPath:   config.GetString("dataPath"),
 			}),
 			edge.WithUdpTunnel(edge.UdpTunnelConfig{
 				ServerID:      config.GetString("serverID"),

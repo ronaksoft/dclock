@@ -6,7 +6,7 @@ import (
 	badger "github.com/dgraph-io/badger/v3"
 	edge "github.com/ronaksoft/rony/edge"
 	registry "github.com/ronaksoft/rony/registry"
-	kv "github.com/ronaksoft/rony/repo/kv"
+	store "github.com/ronaksoft/rony/store"
 	proto "google.golang.org/protobuf/proto"
 	sync "sync"
 )
@@ -54,9 +54,9 @@ func init() {
 	registry.RegisterConstructor(3023575326, "Page")
 }
 
-func SavePageWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *Page) (err error) {
+func SavePageWithTxn(txn *badger.Txn, alloc *store.Allocator, m *Page) (err error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -79,16 +79,16 @@ func SavePageWithTxn(txn *badger.Txn, alloc *kv.Allocator, m *Page) (err error) 
 }
 
 func SavePage(m *Page) error {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
-	return kv.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *badger.Txn) error {
 		return SavePageWithTxn(txn, alloc, m)
 	})
 }
 
-func ReadPageWithTxn(txn *badger.Txn, alloc *kv.Allocator, id uint32, m *Page) (*Page, error) {
+func ReadPageWithTxn(txn *badger.Txn, alloc *store.Allocator, id uint32, m *Page) (*Page, error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -103,23 +103,23 @@ func ReadPageWithTxn(txn *badger.Txn, alloc *kv.Allocator, id uint32, m *Page) (
 }
 
 func ReadPage(id uint32, m *Page) (*Page, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	if m == nil {
 		m = &Page{}
 	}
 
-	err := kv.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *badger.Txn) (err error) {
 		m, err = ReadPageWithTxn(txn, alloc, id, m)
 		return err
 	})
 	return m, err
 }
 
-func ReadPageByReplicaSetAndIDWithTxn(txn *badger.Txn, alloc *kv.Allocator, replicaSet uint64, id uint32, m *Page) (*Page, error) {
+func ReadPageByReplicaSetAndIDWithTxn(txn *badger.Txn, alloc *store.Allocator, replicaSet uint64, id uint32, m *Page) (*Page, error) {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -134,19 +134,19 @@ func ReadPageByReplicaSetAndIDWithTxn(txn *badger.Txn, alloc *kv.Allocator, repl
 }
 
 func ReadPageByReplicaSetAndID(replicaSet uint64, id uint32, m *Page) (*Page, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 	if m == nil {
 		m = &Page{}
 	}
-	err := kv.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *badger.Txn) (err error) {
 		m, err = ReadPageByReplicaSetAndIDWithTxn(txn, alloc, replicaSet, id, m)
 		return err
 	})
 	return m, err
 }
 
-func DeletePageWithTxn(txn *badger.Txn, alloc *kv.Allocator, id uint32) error {
+func DeletePageWithTxn(txn *badger.Txn, alloc *store.Allocator, id uint32) error {
 	m := &Page{}
 	item, err := txn.Get(alloc.GenKey('M', C_Page, 299066170, id))
 	if err != nil {
@@ -172,22 +172,22 @@ func DeletePageWithTxn(txn *badger.Txn, alloc *kv.Allocator, id uint32) error {
 }
 
 func DeletePage(id uint32) error {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	return kv.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *badger.Txn) error {
 		return DeletePageWithTxn(txn, alloc, id)
 	})
 }
 
 func ListPage(
-	offsetID uint32, lo *kv.ListOption, cond func(m *Page) bool,
+	offsetID uint32, lo *store.ListOption, cond func(m *Page) bool,
 ) ([]*Page, error) {
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	res := make([]*Page, 0, lo.Limit())
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey(C_Page, 299066170)
 		opt.Reverse = lo.Backward()
@@ -220,9 +220,9 @@ func ListPage(
 	return res, err
 }
 
-func IterPages(txn *badger.Txn, alloc *kv.Allocator, cb func(m *Page) bool) error {
+func IterPages(txn *badger.Txn, alloc *store.Allocator, cb func(m *Page) bool) error {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
@@ -250,12 +250,12 @@ func IterPages(txn *badger.Txn, alloc *kv.Allocator, cb func(m *Page) bool) erro
 	return nil
 }
 
-func ListPageByReplicaSet(replicaSet uint64, offsetID uint32, lo *kv.ListOption) ([]*Page, error) {
-	alloc := kv.NewAllocator()
+func ListPageByReplicaSet(replicaSet uint64, offsetID uint32, lo *store.ListOption) ([]*Page, error) {
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
 	res := make([]*Page, 0, lo.Limit())
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey('M', C_Page, 1040696757, replicaSet)
 		opt.Reverse = lo.Backward()
@@ -286,9 +286,9 @@ func ListPageByReplicaSet(replicaSet uint64, offsetID uint32, lo *kv.ListOption)
 	return res, err
 }
 
-func IterPageByReplicaSet(txn *badger.Txn, alloc *kv.Allocator, replicaSet uint64, cb func(m *Page) bool) error {
+func IterPageByReplicaSet(txn *badger.Txn, alloc *store.Allocator, replicaSet uint64, cb func(m *Page) bool) error {
 	if alloc == nil {
-		alloc = kv.NewAllocator()
+		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 

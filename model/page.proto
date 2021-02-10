@@ -2,7 +2,6 @@ syntax = "proto3";
 package model;
 import "github.com/ronaksoft/rony/options.proto";
 option go_package = "github.com/ronaksoft/dclock/model";
-option (rony_repo) = "local";
 
 // Page
 message Page {

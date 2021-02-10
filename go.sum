@@ -418,6 +418,8 @@ github.com/ronaksoft/rony v0.3.19 h1:ihcCnZhPbeYeJOAAN9C+IoqQVi+2XYLusLF09PZnaRc
 github.com/ronaksoft/rony v0.3.19/go.mod h1:TIuaafkbdd8XJvrXq6Utt13z+ke8ACZ6zPesD5qhhBQ=
 github.com/ronaksoft/rony v0.4.0 h1:YqY3xk7LcZCSCyDISm3/ria6eB2q+sSJZwNvhMarSlE=
 github.com/ronaksoft/rony v0.4.0/go.mod h1:LOQM3XsvWsEVIQSlDk5T+Rwg6mR9pZRt+D+4qUIQ7/Q=
+github.com/ronaksoft/rony v0.5.0 h1:SMmeG/UqYz88QZPtg4w9sg6ImNogbHGUUb3sFuxNP8U=
+github.com/ronaksoft/rony v0.5.0/go.mod h1:xAHgjnAvbI1Bzegqe2x68b43Lse+aGUp0c3MR2wCN7Y=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=

@@ -5,7 +5,7 @@ import (
 	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
-	"github.com/ronaksoft/rony/repo/kv"
+	"github.com/ronaksoft/rony/store"
 )
 
 /*
@@ -41,7 +41,9 @@ func (r *Roster) PageList(ctx *edge.RequestCtx, req *PageListRequest, res *Pages
 		}
 		return
 	}
-	pages, err := model.ListPageByReplicaSet(req.GetReplicaSet(), 0, kv.NewListOption())
+
+	// This code will only run on Edge with replica set to 1
+	pages, err := model.ListPageByReplicaSet(req.GetReplicaSet(), 0, store.NewListOption())
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return
@@ -57,10 +59,10 @@ func (r *Roster) PageGet(ctx *edge.RequestCtx, req *PageGetRequest, res *model.P
 		ctx.PushError(rony.ErrCodeUnavailable, rony.ErrItemRequest)
 		return
 	}
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	err := kv.Update(func(txn *badger.Txn) (err error) {
+	err := store.Update(func(txn *badger.Txn) (err error) {
 		_, err = model.ReadPageWithTxn(txn, alloc, req.GetPage(), res)
 		if err != nil && !req.GetCreateNew() {
 			return err
@@ -81,10 +83,10 @@ func (r *Roster) PageSet(ctx *edge.RequestCtx, req *PageSetRequest, res *model.P
 		return
 	}
 
-	alloc := kv.NewAllocator()
+	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	err := kv.Update(func(txn *badger.Txn) (err error) {
+	err := store.Update(func(txn *badger.Txn) (err error) {
 		_, err = model.ReadPageWithTxn(txn, alloc, req.GetPage(), res)
 		if err == nil && !req.GetReplace() {
 			return nil

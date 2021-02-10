@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/ronaksoft/dclock/model"
-	"github.com/ronaksoft/rony/repo/kv"
+	"github.com/ronaksoft/rony/store"
 	"github.com/ronaksoft/rony/tools"
 	"log"
 	"time"
@@ -66,14 +66,14 @@ func (e *Executor) watcher() {
 
 func (e *Executor) saveCheckPoint() {
 	var b [8]byte
-	_ = kv.Update(func(txn *badger.Txn) error {
+	_ = store.Update(func(txn *badger.Txn) error {
 		binary.BigEndian.PutUint64(b[:], uint64(e.checkPoint))
 		return txn.Set(CheckPointKey, b[:])
 	})
 }
 
 func (e *Executor) loadCheckPoint() {
-	_ = kv.View(func(txn *badger.Txn) error {
+	_ = store.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(CheckPointKey)
 		if err != nil {
 			return err
@@ -90,7 +90,7 @@ func (e *Executor) runCheckPoint() {
 	var checkPointPrefix [11]byte
 	copy(checkPointPrefix[:3], CheckPointPrefix)
 	binary.BigEndian.PutUint64(checkPointPrefix[3:], uint64(e.checkPoint))
-	err := kv.View(func(txn *badger.Txn) error {
+	err := store.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = checkPointPrefix[:]
 		opt.PrefetchValues = false
