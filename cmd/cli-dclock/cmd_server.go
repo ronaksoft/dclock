@@ -44,8 +44,6 @@ var ServerCmd = &cobra.Command{
 			ConflictMaxInterval: time.Millisecond,
 		})
 
-		rony.SetLogLevel(-1)
-
 		// Instantiate the edge server
 		edgeServer = edge.NewServer(
 			config.GetString("serverID"),

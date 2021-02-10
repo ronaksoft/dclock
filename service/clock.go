@@ -7,6 +7,7 @@ import (
 	"github.com/ronaksoft/rony"
 	"github.com/ronaksoft/rony/edge"
 	"github.com/ronaksoft/rony/store"
+	"go.uber.org/zap"
 	"hash/crc32"
 )
 
@@ -36,41 +37,45 @@ func NewClock(es *edge.Server) *Clock {
 }
 
 func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse) {
-	h := &model.Hook{
-		ClientID:    []byte(""),
-		ID:          req.GetUniqueID(),
-		Timestamp:   req.GetTimestamp(),
-		CallbackUrl: req.GetHookUrl(),
-		JsonData:    req.GetHookJsonData(),
-		Fired:       false,
-		Success:     false,
-	}
-	err := model.SaveHook(h)
+	thisRS := ctx.Cluster().ReplicaSet()
+	pageID := crc32.ChecksumIEEE(req.GetUniqueID())
+	targetRS, err := ctx.GetReplica(pageID)
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return
 	}
 
-	replicaSet, err := ctx.GetReplica(crc32.ChecksumIEEE(req.GetUniqueID()))
-	if err != nil {
-		ctx.PushError(rony.ErrCodeInternal, err.Error())
-		return
-	}
-
-	// ctxReplica := uint64(crc32.ChecksumIEEE(tools.StrToByte(ctx.GetString("ClientID", "")))%uint32(ctx.Cluster().TotalReplicas()) + 1)
-	if replicaSet != ctx.Cluster().ReplicaSet() {
-		err = ExecuteRemoteHookSet(ctx, replicaSet, req, res,
+	ctx.Log().Info("HookSet",
+		zap.Uint32("PageID", pageID),
+		zap.Uint64("TargetRS", targetRS),
+		zap.Uint64("ThisRS", thisRS),
+	)
+	if targetRS != thisRS {
+		err = ExecuteRemoteHookSet(ctx, targetRS, req, res,
 			&rony.KeyValue{
 				Key:   "ClientID",
 				Value: ctx.GetString("ClientID", ""),
 			},
 		)
-		if err != nil {
-			ctx.PushError(rony.ErrCodeInternal, err.Error())
-			return
-		}
 	} else {
+		h := &model.Hook{
+			ClientID:    []byte(""),
+			ID:          req.GetUniqueID(),
+			Timestamp:   req.GetTimestamp(),
+			CallbackUrl: req.GetHookUrl(),
+			JsonData:    req.GetHookJsonData(),
+			Fired:       false,
+			Success:     false,
+		}
+
+		alloc := store.NewAllocator()
+		defer alloc.ReleaseAll()
 		err = store.Update(func(txn *badger.Txn) error {
+			err := model.SaveHookWithTxn(txn, alloc, h)
+			if err != nil {
+				return err
+			}
+
 			key := make([]byte, 11+len(h.ID))
 			copy(key[:3], "CPP")
 			binary.BigEndian.PutUint64(key[3:11], uint64(req.Timestamp))
