@@ -75,7 +75,6 @@ var ServerCmd = &cobra.Command{
 
 		// Register the service into the edge server
 		service.RegisterClock(service.NewClock(edgeServer), edgeServer, edge.NewHandlerOptions().SetPreHandlers(Authorize, Log))
-		service.RegisterRoster(service.NewRoster(edgeServer), edgeServer, edge.NewHandlerOptions().SetPreHandlers(Log))
 
 		// Start the edge server components
 		edgeServer.Start()

@@ -39,7 +39,6 @@ var ClientCmd = &cobra.Command{
 
 		cli := &ClockCli{}
 		service.RegisterClockCli(cli, c, ClientInteractiveCmd)
-		service.RegisterRosterCli(cli, c, ClientInteractiveCmd)
 
 		p := prompt.New(tools.PromptExecutor(ClientInteractiveCmd), tools.PromptCompleter(ClientInteractiveCmd))
 		p.Run()
@@ -54,28 +53,6 @@ var ClientInteractiveCmd = &cobra.Command{
 }
 
 type ClockCli struct{}
-
-func (c *ClockCli) PageList(cli *service.RosterClient, cmd *cobra.Command, args []string) error {
-	req := &service.PageListRequest{
-		ReplicaSet: config.GetUint64("replicaSet"),
-	}
-	cmd.Println("Req:", req.String())
-	res, err := cli.PageList(
-		req,
-		&rony.KeyValue{
-			Key:   "ClientID",
-			Value: config.GetString("clientID"),
-		},
-	)
-	if err != nil {
-		cmd.Println("Error:", err)
-		return nil
-	}
-	for _, p := range res.GetPages() {
-		cmd.Println(p.String())
-	}
-	return nil
-}
 
 func (c *ClockCli) HookSet(cli *service.ClockClient, cmd *cobra.Command, args []string) error {
 	req := &service.HookSetRequest{

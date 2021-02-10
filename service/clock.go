@@ -51,21 +51,15 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		return
 	}
 
-	tReq := &PageGetRequest{
-		Page:       crc32.ChecksumIEEE(req.GetUniqueID()),
-		ReplicaSet: c.es.Cluster().ReplicaSet(),
-		CreateNew:  true,
-	}
-	tRes := &model.Page{}
-	err = ExecuteRemotePageGet(ctx, 1, tReq, tRes)
+	replicaSet, err := ctx.GetReplica(crc32.ChecksumIEEE(req.GetUniqueID()))
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return
 	}
 
 	// ctxReplica := uint64(crc32.ChecksumIEEE(tools.StrToByte(ctx.GetString("ClientID", "")))%uint32(ctx.Cluster().TotalReplicas()) + 1)
-	if tRes.GetReplicaSet() != ctx.Cluster().ReplicaSet() {
-		err = ExecuteRemoteHookSet(ctx, tRes.GetReplicaSet(), req, res,
+	if replicaSet != ctx.Cluster().ReplicaSet() {
+		err = ExecuteRemoteHookSet(ctx, replicaSet, req, res,
 			&rony.KeyValue{
 				Key:   "ClientID",
 				Value: ctx.GetString("ClientID", ""),
