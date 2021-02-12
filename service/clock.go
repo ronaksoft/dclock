@@ -51,7 +51,7 @@ func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetR
 		zap.Uint64("ThisRS", thisRS),
 	)
 	if targetRS != thisRS {
-		err = ExecuteRemoteHookSet(ctx, targetRS, req, res,
+		err = ExecuteRemoteClockHookSet(ctx, targetRS, req, res,
 			&rony.KeyValue{
 				Key:   "ClientID",
 				Value: ctx.GetString("ClientID", ""),
@@ -99,18 +99,6 @@ func (c *Clock) HookDelete(ctx *edge.RequestCtx, req *HookDeleteRequest, res *Ho
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return
 	}
-
-	// tReq := &PageGetRequest{
-	// 	Page:     crc32.ChecksumIEEE(req.GetUniqueID()),
-	// 	ReplicaSet: c.es.Cluster().ReplicaSet(),
-	// 	CreateNew: true,
-	// }
-	// tRes := &model.Page{}
-	// err = ExecuteRemotePageGet(ctx, 1, tReq, tRes)
-	// if err != nil {
-	// 	ctx.PushError(rony.ErrCodeInternal, err.Error())
-	// 	return
-	// }
 
 	err = model.DeleteHook(nil, req.GetUniqueID())
 	if err != nil {

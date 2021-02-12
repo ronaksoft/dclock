@@ -3,7 +3,6 @@
 package model
 
 import (
-	badger "github.com/dgraph-io/badger/v3"
 	edge "github.com/ronaksoft/rony/edge"
 	registry "github.com/ronaksoft/rony/registry"
 	store "github.com/ronaksoft/rony/store"
@@ -112,7 +111,7 @@ func init() {
 	registry.RegisterConstructor(226559863, "HookHolder")
 }
 
-func SaveHookWithTxn(txn *badger.Txn, alloc *store.Allocator, m *Hook) (err error) {
+func SaveHookWithTxn(txn *store.Txn, alloc *store.Allocator, m *Hook) (err error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
@@ -139,12 +138,12 @@ func SaveHookWithTxn(txn *badger.Txn, alloc *store.Allocator, m *Hook) (err erro
 func SaveHook(m *Hook) error {
 	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
-	return store.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *store.Txn) error {
 		return SaveHookWithTxn(txn, alloc, m)
 	})
 }
 
-func ReadHookWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *Hook) (*Hook, error) {
+func ReadHookWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *Hook) (*Hook, error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
@@ -168,14 +167,14 @@ func ReadHook(clientID []byte, id []byte, m *Hook) (*Hook, error) {
 		m = &Hook{}
 	}
 
-	err := store.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *store.Txn) (err error) {
 		m, err = ReadHookWithTxn(txn, alloc, clientID, id, m)
 		return err
 	})
 	return m, err
 }
 
-func ReadHookByCallbackUrlAndIDWithTxn(txn *badger.Txn, alloc *store.Allocator, callbackUrl []byte, id []byte, m *Hook) (*Hook, error) {
+func ReadHookByCallbackUrlAndIDWithTxn(txn *store.Txn, alloc *store.Allocator, callbackUrl []byte, id []byte, m *Hook) (*Hook, error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
@@ -197,14 +196,14 @@ func ReadHookByCallbackUrlAndID(callbackUrl []byte, id []byte, m *Hook) (*Hook, 
 	if m == nil {
 		m = &Hook{}
 	}
-	err := store.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *store.Txn) (err error) {
 		m, err = ReadHookByCallbackUrlAndIDWithTxn(txn, alloc, callbackUrl, id, m)
 		return err
 	})
 	return m, err
 }
 
-func DeleteHookWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
+func DeleteHookWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
 	m := &Hook{}
 	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3973050528, clientID, id))
 	if err != nil {
@@ -233,7 +232,7 @@ func DeleteHook(clientID []byte, id []byte) error {
 	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	return store.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *store.Txn) error {
 		return DeleteHookWithTxn(txn, alloc, clientID, id)
 	})
 }
@@ -245,8 +244,8 @@ func ListHook(
 	defer alloc.ReleaseAll()
 
 	res := make([]*Hook, 0, lo.Limit())
-	err := store.View(func(txn *badger.Txn) error {
-		opt := badger.DefaultIteratorOptions
+	err := store.View(func(txn *store.Txn) error {
+		opt := store.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey(C_Hook, 3973050528)
 		opt.Reverse = lo.Backward()
 		osk := alloc.GenKey('M', C_Hook, 3973050528, offsetClientID)
@@ -278,14 +277,14 @@ func ListHook(
 	return res, err
 }
 
-func IterHooks(txn *badger.Txn, alloc *store.Allocator, cb func(m *Hook) bool) error {
+func IterHooks(txn *store.Txn, alloc *store.Allocator, cb func(m *Hook) bool) error {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
 	exitLoop := false
-	iterOpt := badger.DefaultIteratorOptions
+	iterOpt := store.DefaultIteratorOptions
 	iterOpt.Prefix = alloc.GenKey(C_Hook, 3973050528)
 	iter := txn.NewIterator(iterOpt)
 	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
@@ -313,8 +312,8 @@ func ListHookByClientID(clientID []byte, offsetID []byte, lo *store.ListOption) 
 	defer alloc.ReleaseAll()
 
 	res := make([]*Hook, 0, lo.Limit())
-	err := store.View(func(txn *badger.Txn) error {
-		opt := badger.DefaultIteratorOptions
+	err := store.View(func(txn *store.Txn) error {
+		opt := store.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
 		osk := alloc.GenKey('M', C_Hook, 3973050528, clientID, offsetID)
@@ -349,8 +348,8 @@ func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *store.ListOp
 	defer alloc.ReleaseAll()
 
 	res := make([]*Hook, 0, lo.Limit())
-	err := store.View(func(txn *badger.Txn) error {
-		opt := badger.DefaultIteratorOptions
+	err := store.View(func(txn *store.Txn) error {
+		opt := store.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
 		opt.Reverse = lo.Backward()
 		osk := alloc.GenKey('M', C_Hook, 3467894716, callbackUrl, offsetID)
@@ -380,14 +379,14 @@ func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *store.ListOp
 	return res, err
 }
 
-func IterHookByClientID(txn *badger.Txn, alloc *store.Allocator, clientID []byte, cb func(m *Hook) bool) error {
+func IterHookByClientID(txn *store.Txn, alloc *store.Allocator, clientID []byte, cb func(m *Hook) bool) error {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
 	exitLoop := false
-	opt := badger.DefaultIteratorOptions
+	opt := store.DefaultIteratorOptions
 	opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
@@ -410,14 +409,14 @@ func IterHookByClientID(txn *badger.Txn, alloc *store.Allocator, clientID []byte
 	return nil
 }
 
-func IterHookByCallbackUrl(txn *badger.Txn, alloc *store.Allocator, callbackUrl []byte, cb func(m *Hook) bool) error {
+func IterHookByCallbackUrl(txn *store.Txn, alloc *store.Allocator, callbackUrl []byte, cb func(m *Hook) bool) error {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
 	exitLoop := false
-	opt := badger.DefaultIteratorOptions
+	opt := store.DefaultIteratorOptions
 	opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
@@ -440,7 +439,7 @@ func IterHookByCallbackUrl(txn *badger.Txn, alloc *store.Allocator, callbackUrl 
 	return nil
 }
 
-func SaveHookHolderWithTxn(txn *badger.Txn, alloc *store.Allocator, m *HookHolder) (err error) {
+func SaveHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, m *HookHolder) (err error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
@@ -461,12 +460,12 @@ func SaveHookHolderWithTxn(txn *badger.Txn, alloc *store.Allocator, m *HookHolde
 func SaveHookHolder(m *HookHolder) error {
 	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
-	return store.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *store.Txn) error {
 		return SaveHookHolderWithTxn(txn, alloc, m)
 	})
 }
 
-func ReadHookHolderWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *HookHolder) (*HookHolder, error) {
+func ReadHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *HookHolder) (*HookHolder, error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
@@ -490,14 +489,14 @@ func ReadHookHolder(clientID []byte, id []byte, m *HookHolder) (*HookHolder, err
 		m = &HookHolder{}
 	}
 
-	err := store.View(func(txn *badger.Txn) (err error) {
+	err := store.View(func(txn *store.Txn) (err error) {
 		m, err = ReadHookHolderWithTxn(txn, alloc, clientID, id, m)
 		return err
 	})
 	return m, err
 }
 
-func DeleteHookHolderWithTxn(txn *badger.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
+func DeleteHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
 	err := txn.Delete(alloc.GenKey('M', C_HookHolder, 3973050528, clientID, id))
 	if err != nil {
 		return err
@@ -510,7 +509,7 @@ func DeleteHookHolder(clientID []byte, id []byte) error {
 	alloc := store.NewAllocator()
 	defer alloc.ReleaseAll()
 
-	return store.Update(func(txn *badger.Txn) error {
+	return store.Update(func(txn *store.Txn) error {
 		return DeleteHookHolderWithTxn(txn, alloc, clientID, id)
 	})
 }
@@ -522,8 +521,8 @@ func ListHookHolder(
 	defer alloc.ReleaseAll()
 
 	res := make([]*HookHolder, 0, lo.Limit())
-	err := store.View(func(txn *badger.Txn) error {
-		opt := badger.DefaultIteratorOptions
+	err := store.View(func(txn *store.Txn) error {
+		opt := store.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey(C_HookHolder, 3973050528)
 		opt.Reverse = lo.Backward()
 		osk := alloc.GenKey('M', C_HookHolder, 3973050528, offsetClientID)
@@ -555,14 +554,14 @@ func ListHookHolder(
 	return res, err
 }
 
-func IterHookHolders(txn *badger.Txn, alloc *store.Allocator, cb func(m *HookHolder) bool) error {
+func IterHookHolders(txn *store.Txn, alloc *store.Allocator, cb func(m *HookHolder) bool) error {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
 	exitLoop := false
-	iterOpt := badger.DefaultIteratorOptions
+	iterOpt := store.DefaultIteratorOptions
 	iterOpt.Prefix = alloc.GenKey(C_HookHolder, 3973050528)
 	iter := txn.NewIterator(iterOpt)
 	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
@@ -590,8 +589,8 @@ func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *store.ListOp
 	defer alloc.ReleaseAll()
 
 	res := make([]*HookHolder, 0, lo.Limit())
-	err := store.View(func(txn *badger.Txn) error {
-		opt := badger.DefaultIteratorOptions
+	err := store.View(func(txn *store.Txn) error {
+		opt := store.DefaultIteratorOptions
 		opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
 		osk := alloc.GenKey('M', C_HookHolder, 3973050528, clientID, offsetID)
@@ -621,14 +620,14 @@ func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *store.ListOp
 	return res, err
 }
 
-func IterHookHolderByClientID(txn *badger.Txn, alloc *store.Allocator, clientID []byte, cb func(m *HookHolder) bool) error {
+func IterHookHolderByClientID(txn *store.Txn, alloc *store.Allocator, clientID []byte, cb func(m *HookHolder) bool) error {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
 	exitLoop := false
-	opt := badger.DefaultIteratorOptions
+	opt := store.DefaultIteratorOptions
 	opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {

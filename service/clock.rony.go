@@ -168,16 +168,16 @@ func (x *HookDeleteResponse) PushToContext(ctx *edge.RequestCtx) {
 	ctx.PushMessage(C_HookDeleteResponse, x)
 }
 
-const C_HookSet int64 = 3312939871
-const C_HookDelete int64 = 3778745165
+const C_ClockHookSet int64 = 4135474624
+const C_ClockHookDelete int64 = 2910246707
 
 func init() {
 	registry.RegisterConstructor(2791338713, "HookSetRequest")
 	registry.RegisterConstructor(2706970787, "HookSetResponse")
 	registry.RegisterConstructor(3968236869, "HookDeleteRequest")
 	registry.RegisterConstructor(1487544771, "HookDeleteResponse")
-	registry.RegisterConstructor(3312939871, "HookSet")
-	registry.RegisterConstructor(3778745165, "HookDelete")
+	registry.RegisterConstructor(4135474624, "ClockHookSet")
+	registry.RegisterConstructor(2910246707, "ClockHookDelete")
 }
 
 type IClock interface {
@@ -224,8 +224,8 @@ func (sw *clockWrapper) hookDeleteWrapper(ctx *edge.RequestCtx, in *rony.Message
 }
 
 func (sw *clockWrapper) Register(e *edge.Server, ho *edge.HandlerOptions) {
-	e.SetHandlers(C_HookSet, true, ho.ApplyTo(sw.hookSetWrapper)...)
-	e.SetHandlers(C_HookDelete, true, ho.ApplyTo(sw.hookDeleteWrapper)...)
+	e.SetHandlers(C_ClockHookSet, true, ho.ApplyTo(sw.hookSetWrapper)...)
+	e.SetHandlers(C_ClockHookDelete, true, ho.ApplyTo(sw.hookDeleteWrapper)...)
 }
 
 func RegisterClock(h IClock, e *edge.Server, ho *edge.HandlerOptions) {
@@ -235,12 +235,12 @@ func RegisterClock(h IClock, e *edge.Server, ho *edge.HandlerOptions) {
 	w.Register(e, ho)
 }
 
-func ExecuteRemoteHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetRequest, res *HookSetResponse, kvs ...*rony.KeyValue) error {
+func ExecuteRemoteClockHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetRequest, res *HookSetResponse, kvs ...*rony.KeyValue) error {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(ctx.ReqID(), C_HookSet, req, kvs...)
+	out.Fill(ctx.ReqID(), C_ClockHookSet, req, kvs...)
 	err := ctx.ExecuteRemote(replicaSet, true, out, in)
 	if err != nil {
 		return err
@@ -259,12 +259,12 @@ func ExecuteRemoteHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetR
 	}
 }
 
-func ExecuteRemoteHookDelete(ctx *edge.RequestCtx, replicaSet uint64, req *HookDeleteRequest, res *HookDeleteResponse, kvs ...*rony.KeyValue) error {
+func ExecuteRemoteClockHookDelete(ctx *edge.RequestCtx, replicaSet uint64, req *HookDeleteRequest, res *HookDeleteResponse, kvs ...*rony.KeyValue) error {
 	out := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(ctx.ReqID(), C_HookDelete, req, kvs...)
+	out.Fill(ctx.ReqID(), C_ClockHookDelete, req, kvs...)
 	err := ctx.ExecuteRemote(replicaSet, true, out, in)
 	if err != nil {
 		return err
@@ -298,7 +298,7 @@ func (c *ClockClient) HookSet(req *HookSetRequest, kvs ...*rony.KeyValue) (*Hook
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(c.c.GetRequestID(), C_HookSet, req, kvs...)
+	out.Fill(c.c.GetRequestID(), C_ClockHookSet, req, kvs...)
 	err := c.c.Send(out, in, true)
 	if err != nil {
 		return nil, err
@@ -322,7 +322,7 @@ func (c *ClockClient) HookDelete(req *HookDeleteRequest, kvs ...*rony.KeyValue) 
 	defer rony.PoolMessageEnvelope.Put(out)
 	in := rony.PoolMessageEnvelope.Get()
 	defer rony.PoolMessageEnvelope.Put(in)
-	out.Fill(c.c.GetRequestID(), C_HookDelete, req, kvs...)
+	out.Fill(c.c.GetRequestID(), C_ClockHookDelete, req, kvs...)
 	err := c.c.Send(out, in, true)
 	if err != nil {
 		return nil, err
@@ -351,7 +351,7 @@ func prepareClockCommand(cmd *cobra.Command, c edgec.Client) (*ClockClient, erro
 	return NewClockClient(c), nil
 }
 
-var genHookSetCmd = func(h IClockCli, c edgec.Client) *cobra.Command {
+var genClockHookSetCmd = func(h IClockCli, c edgec.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "hook-set",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -371,7 +371,7 @@ var genHookSetCmd = func(h IClockCli, c edgec.Client) *cobra.Command {
 	return cmd
 }
 
-var genHookDeleteCmd = func(h IClockCli, c edgec.Client) *cobra.Command {
+var genClockHookDeleteCmd = func(h IClockCli, c edgec.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "hook-delete",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -395,6 +395,6 @@ type IClockCli interface {
 
 func RegisterClockCli(h IClockCli, c edgec.Client, rootCmd *cobra.Command) {
 	rootCmd.AddCommand(
-		genHookSetCmd(h, c), genHookDeleteCmd(h, c),
+		genClockHookSetCmd(h, c), genClockHookDeleteCmd(h, c),
 	)
 }
