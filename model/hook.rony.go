@@ -111,22 +111,33 @@ func init() {
 	registry.RegisterConstructor(226559863, "HookHolder")
 }
 
-func SaveHookWithTxn(txn *store.Txn, alloc *store.Allocator, m *Hook) (err error) {
+func CreateHook(m *Hook) error {
+	alloc := store.NewAllocator()
+	defer alloc.ReleaseAll()
+	return store.Update(func(txn *store.Txn) error {
+		return CreateHookWithTxn(txn, alloc, m)
+	})
+}
+
+func CreateHookWithTxn(txn *store.Txn, alloc *store.Allocator, m *Hook) (err error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
+	if store.Exists(txn, alloc, 'M', C_Hook, 3973050528, m.ClientID, m.ID) {
+		return store.ErrAlreadyExists
+	}
 	// save entry
-	b := alloc.GenValue(m)
-	key := alloc.GenKey('M', C_Hook, 3973050528, m.ClientID, m.ID)
-	err = txn.Set(key, b)
+	val := alloc.Marshal(m)
+	err = store.Set(txn, alloc, val, 'M', C_Hook, 3973050528, m.ClientID, m.ID)
 	if err != nil {
 		return
 	}
 
-	// save entry for view[CallbackUrl ID]
-	err = txn.Set(alloc.GenKey('M', C_Hook, 3467894716, m.CallbackUrl, m.ID), b)
+	// save views
+	// save entry for view: [CallbackUrl ID]
+	err = store.Set(txn, alloc, val, 'M', C_Hook, 3467894716, m.CallbackUrl, m.ID)
 	if err != nil {
 		return
 	}
@@ -135,27 +146,16 @@ func SaveHookWithTxn(txn *store.Txn, alloc *store.Allocator, m *Hook) (err error
 
 }
 
-func SaveHook(m *Hook) error {
-	alloc := store.NewAllocator()
-	defer alloc.ReleaseAll()
-	return store.Update(func(txn *store.Txn) error {
-		return SaveHookWithTxn(txn, alloc, m)
-	})
-}
-
 func ReadHookWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *Hook) (*Hook, error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
-	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3973050528, clientID, id))
+	err := store.Unmarshal(txn, alloc, m, 'M', C_Hook, 3973050528, clientID, id)
 	if err != nil {
 		return nil, err
 	}
-	err = item.Value(func(val []byte) error {
-		return m.Unmarshal(val)
-	})
 	return m, err
 }
 
@@ -180,13 +180,10 @@ func ReadHookByCallbackUrlAndIDWithTxn(txn *store.Txn, alloc *store.Allocator, c
 		defer alloc.ReleaseAll()
 	}
 
-	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3467894716, callbackUrl, id))
+	err := store.Unmarshal(txn, alloc, m, 'M', C_Hook, 3467894716, callbackUrl, id)
 	if err != nil {
 		return nil, err
 	}
-	err = item.Value(func(val []byte) error {
-		return m.Unmarshal(val)
-	})
 	return m, err
 }
 
@@ -203,24 +200,52 @@ func ReadHookByCallbackUrlAndID(callbackUrl []byte, id []byte, m *Hook) (*Hook, 
 	return m, err
 }
 
-func DeleteHookWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
-	m := &Hook{}
-	item, err := txn.Get(alloc.GenKey('M', C_Hook, 3973050528, clientID, id))
-	if err != nil {
-		return err
+func UpdateHookWithTxn(txn *store.Txn, alloc *store.Allocator, m *Hook) error {
+	if alloc == nil {
+		alloc = store.NewAllocator()
+		defer alloc.ReleaseAll()
 	}
-	err = item.Value(func(val []byte) error {
-		return m.Unmarshal(val)
-	})
-	if err != nil {
-		return err
-	}
-	err = txn.Delete(alloc.GenKey('M', C_Hook, 3973050528, m.ClientID, m.ID))
+
+	om := &Hook{}
+	err := store.Unmarshal(txn, alloc, om, 'M', C_Hook, 3973050528, m.ClientID, m.ID)
 	if err != nil {
 		return err
 	}
 
-	err = txn.Delete(alloc.GenKey('M', C_Hook, 3467894716, m.CallbackUrl, m.ID))
+	err = DeleteHookWithTxn(txn, alloc, om.ClientID, om.ID)
+	if err != nil {
+		return err
+	}
+
+	return CreateHookWithTxn(txn, alloc, m)
+}
+
+func UpdateHook(clientID []byte, id []byte, m *Hook) error {
+	alloc := store.NewAllocator()
+	defer alloc.ReleaseAll()
+
+	if m == nil {
+		return store.ErrEmptyObject
+	}
+
+	err := store.View(func(txn *store.Txn) (err error) {
+		return UpdateHookWithTxn(txn, alloc, m)
+	})
+	return err
+}
+
+func DeleteHookWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
+	m := &Hook{}
+	err := store.Unmarshal(txn, alloc, m, 'M', C_Hook, 3973050528, clientID, id)
+	if err != nil {
+		return err
+	}
+	err = store.Delete(txn, alloc, 'M', C_Hook, 3973050528, m.ClientID, m.ID)
+	if err != nil {
+		return err
+	}
+
+	err = store.Delete(txn, alloc, 'M', C_Hook, 3467894716, m.CallbackUrl, m.ID)
 	if err != nil {
 		return err
 	}
@@ -237,6 +262,52 @@ func DeleteHook(clientID []byte, id []byte) error {
 	})
 }
 
+func SaveHookWithTxn(txn *store.Txn, alloc *store.Allocator, m *Hook) (err error) {
+	if store.Exists(txn, alloc, 'M', C_Hook, 3973050528, m.ClientID, m.ID) {
+		return UpdateHookWithTxn(txn, alloc, m)
+	} else {
+		return CreateHookWithTxn(txn, alloc, m)
+	}
+}
+
+func SaveHook(m *Hook) error {
+	alloc := store.NewAllocator()
+	defer alloc.ReleaseAll()
+	return store.Update(func(txn *store.Txn) error {
+		return SaveHookWithTxn(txn, alloc, m)
+	})
+}
+
+func IterHooks(txn *store.Txn, alloc *store.Allocator, cb func(m *Hook) bool) error {
+	if alloc == nil {
+		alloc = store.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
+	iterOpt := store.DefaultIteratorOptions
+	iterOpt.Prefix = alloc.GenKey('M', C_Hook, 3973050528)
+	iter := txn.NewIterator(iterOpt)
+	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
+		_ = iter.Item().Value(func(val []byte) error {
+			m := &Hook{}
+			err := m.Unmarshal(val)
+			if err != nil {
+				return err
+			}
+			if !cb(m) {
+				exitLoop = true
+			}
+			return nil
+		})
+		if exitLoop {
+			break
+		}
+	}
+	iter.Close()
+	return nil
+}
+
 func ListHook(
 	offsetClientID []byte, offsetID []byte, lo *store.ListOption, cond func(m *Hook) bool,
 ) ([]*Hook, error) {
@@ -246,7 +317,7 @@ func ListHook(
 	res := make([]*Hook, 0, lo.Limit())
 	err := store.View(func(txn *store.Txn) error {
 		opt := store.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey(C_Hook, 3973050528)
+		opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528)
 		opt.Reverse = lo.Backward()
 		osk := alloc.GenKey('M', C_Hook, 3973050528, offsetClientID)
 		iter := txn.NewIterator(opt)
@@ -277,17 +348,47 @@ func ListHook(
 	return res, err
 }
 
-func IterHooks(txn *store.Txn, alloc *store.Allocator, cb func(m *Hook) bool) error {
+func IterHookByClientID(txn *store.Txn, alloc *store.Allocator, clientID []byte, cb func(m *Hook) bool) error {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
 	exitLoop := false
-	iterOpt := store.DefaultIteratorOptions
-	iterOpt.Prefix = alloc.GenKey(C_Hook, 3973050528)
-	iter := txn.NewIterator(iterOpt)
-	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
+	opt := store.DefaultIteratorOptions
+	opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
+	iter := txn.NewIterator(opt)
+	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
+		_ = iter.Item().Value(func(val []byte) error {
+			m := &Hook{}
+			err := m.Unmarshal(val)
+			if err != nil {
+				return err
+			}
+			if !cb(m) {
+				exitLoop = true
+			}
+			return nil
+		})
+		if exitLoop {
+			break
+		}
+	}
+	iter.Close()
+	return nil
+}
+
+func IterHookByCallbackUrl(txn *store.Txn, alloc *store.Allocator, callbackUrl []byte, cb func(m *Hook) bool) error {
+	if alloc == nil {
+		alloc = store.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
+	opt := store.DefaultIteratorOptions
+	opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
+	iter := txn.NewIterator(opt)
+	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
 			m := &Hook{}
 			err := m.Unmarshal(val)
@@ -379,76 +480,26 @@ func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *store.ListOp
 	return res, err
 }
 
-func IterHookByClientID(txn *store.Txn, alloc *store.Allocator, clientID []byte, cb func(m *Hook) bool) error {
-	if alloc == nil {
-		alloc = store.NewAllocator()
-		defer alloc.ReleaseAll()
-	}
-
-	exitLoop := false
-	opt := store.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
-	iter := txn.NewIterator(opt)
-	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
-		_ = iter.Item().Value(func(val []byte) error {
-			m := &Hook{}
-			err := m.Unmarshal(val)
-			if err != nil {
-				return err
-			}
-			if !cb(m) {
-				exitLoop = true
-			}
-			return nil
-		})
-		if exitLoop {
-			break
-		}
-	}
-	iter.Close()
-	return nil
+func CreateHookHolder(m *HookHolder) error {
+	alloc := store.NewAllocator()
+	defer alloc.ReleaseAll()
+	return store.Update(func(txn *store.Txn) error {
+		return CreateHookHolderWithTxn(txn, alloc, m)
+	})
 }
 
-func IterHookByCallbackUrl(txn *store.Txn, alloc *store.Allocator, callbackUrl []byte, cb func(m *Hook) bool) error {
+func CreateHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, m *HookHolder) (err error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
-	exitLoop := false
-	opt := store.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
-	iter := txn.NewIterator(opt)
-	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
-		_ = iter.Item().Value(func(val []byte) error {
-			m := &Hook{}
-			err := m.Unmarshal(val)
-			if err != nil {
-				return err
-			}
-			if !cb(m) {
-				exitLoop = true
-			}
-			return nil
-		})
-		if exitLoop {
-			break
-		}
+	if store.Exists(txn, alloc, 'M', C_HookHolder, 3973050528, m.ClientID, m.ID) {
+		return store.ErrAlreadyExists
 	}
-	iter.Close()
-	return nil
-}
-
-func SaveHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, m *HookHolder) (err error) {
-	if alloc == nil {
-		alloc = store.NewAllocator()
-		defer alloc.ReleaseAll()
-	}
-
 	// save entry
-	b := alloc.GenValue(m)
-	key := alloc.GenKey('M', C_HookHolder, 3973050528, m.ClientID, m.ID)
-	err = txn.Set(key, b)
+	val := alloc.Marshal(m)
+	err = store.Set(txn, alloc, val, 'M', C_HookHolder, 3973050528, m.ClientID, m.ID)
 	if err != nil {
 		return
 	}
@@ -457,27 +508,16 @@ func SaveHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, m *HookHolder
 
 }
 
-func SaveHookHolder(m *HookHolder) error {
-	alloc := store.NewAllocator()
-	defer alloc.ReleaseAll()
-	return store.Update(func(txn *store.Txn) error {
-		return SaveHookHolderWithTxn(txn, alloc, m)
-	})
-}
-
 func ReadHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte, m *HookHolder) (*HookHolder, error) {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
-	item, err := txn.Get(alloc.GenKey('M', C_HookHolder, 3973050528, clientID, id))
+	err := store.Unmarshal(txn, alloc, m, 'M', C_HookHolder, 3973050528, clientID, id)
 	if err != nil {
 		return nil, err
 	}
-	err = item.Value(func(val []byte) error {
-		return m.Unmarshal(val)
-	})
 	return m, err
 }
 
@@ -496,8 +536,42 @@ func ReadHookHolder(clientID []byte, id []byte, m *HookHolder) (*HookHolder, err
 	return m, err
 }
 
+func UpdateHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, m *HookHolder) error {
+	if alloc == nil {
+		alloc = store.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	om := &HookHolder{}
+	err := store.Unmarshal(txn, alloc, om, 'M', C_HookHolder, 3973050528, m.ClientID, m.ID)
+	if err != nil {
+		return err
+	}
+
+	err = DeleteHookHolderWithTxn(txn, alloc, om.ClientID, om.ID)
+	if err != nil {
+		return err
+	}
+
+	return CreateHookHolderWithTxn(txn, alloc, m)
+}
+
+func UpdateHookHolder(clientID []byte, id []byte, m *HookHolder) error {
+	alloc := store.NewAllocator()
+	defer alloc.ReleaseAll()
+
+	if m == nil {
+		return store.ErrEmptyObject
+	}
+
+	err := store.View(func(txn *store.Txn) (err error) {
+		return UpdateHookHolderWithTxn(txn, alloc, m)
+	})
+	return err
+}
+
 func DeleteHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, clientID []byte, id []byte) error {
-	err := txn.Delete(alloc.GenKey('M', C_HookHolder, 3973050528, clientID, id))
+	err := store.Delete(txn, alloc, 'M', C_HookHolder, 3973050528, clientID, id)
 	if err != nil {
 		return err
 	}
@@ -514,6 +588,52 @@ func DeleteHookHolder(clientID []byte, id []byte) error {
 	})
 }
 
+func SaveHookHolderWithTxn(txn *store.Txn, alloc *store.Allocator, m *HookHolder) (err error) {
+	if store.Exists(txn, alloc, 'M', C_HookHolder, 3973050528, m.ClientID, m.ID) {
+		return UpdateHookHolderWithTxn(txn, alloc, m)
+	} else {
+		return CreateHookHolderWithTxn(txn, alloc, m)
+	}
+}
+
+func SaveHookHolder(m *HookHolder) error {
+	alloc := store.NewAllocator()
+	defer alloc.ReleaseAll()
+	return store.Update(func(txn *store.Txn) error {
+		return SaveHookHolderWithTxn(txn, alloc, m)
+	})
+}
+
+func IterHookHolders(txn *store.Txn, alloc *store.Allocator, cb func(m *HookHolder) bool) error {
+	if alloc == nil {
+		alloc = store.NewAllocator()
+		defer alloc.ReleaseAll()
+	}
+
+	exitLoop := false
+	iterOpt := store.DefaultIteratorOptions
+	iterOpt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528)
+	iter := txn.NewIterator(iterOpt)
+	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
+		_ = iter.Item().Value(func(val []byte) error {
+			m := &HookHolder{}
+			err := m.Unmarshal(val)
+			if err != nil {
+				return err
+			}
+			if !cb(m) {
+				exitLoop = true
+			}
+			return nil
+		})
+		if exitLoop {
+			break
+		}
+	}
+	iter.Close()
+	return nil
+}
+
 func ListHookHolder(
 	offsetClientID []byte, offsetID []byte, lo *store.ListOption, cond func(m *HookHolder) bool,
 ) ([]*HookHolder, error) {
@@ -523,7 +643,7 @@ func ListHookHolder(
 	res := make([]*HookHolder, 0, lo.Limit())
 	err := store.View(func(txn *store.Txn) error {
 		opt := store.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey(C_HookHolder, 3973050528)
+		opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528)
 		opt.Reverse = lo.Backward()
 		osk := alloc.GenKey('M', C_HookHolder, 3973050528, offsetClientID)
 		iter := txn.NewIterator(opt)
@@ -554,17 +674,17 @@ func ListHookHolder(
 	return res, err
 }
 
-func IterHookHolders(txn *store.Txn, alloc *store.Allocator, cb func(m *HookHolder) bool) error {
+func IterHookHolderByClientID(txn *store.Txn, alloc *store.Allocator, clientID []byte, cb func(m *HookHolder) bool) error {
 	if alloc == nil {
 		alloc = store.NewAllocator()
 		defer alloc.ReleaseAll()
 	}
 
 	exitLoop := false
-	iterOpt := store.DefaultIteratorOptions
-	iterOpt.Prefix = alloc.GenKey(C_HookHolder, 3973050528)
-	iter := txn.NewIterator(iterOpt)
-	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
+	opt := store.DefaultIteratorOptions
+	opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
+	iter := txn.NewIterator(opt)
+	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
 			m := &HookHolder{}
 			err := m.Unmarshal(val)
@@ -618,34 +738,4 @@ func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *store.ListOp
 		return nil
 	})
 	return res, err
-}
-
-func IterHookHolderByClientID(txn *store.Txn, alloc *store.Allocator, clientID []byte, cb func(m *HookHolder) bool) error {
-	if alloc == nil {
-		alloc = store.NewAllocator()
-		defer alloc.ReleaseAll()
-	}
-
-	exitLoop := false
-	opt := store.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
-	iter := txn.NewIterator(opt)
-	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
-		_ = iter.Item().Value(func(val []byte) error {
-			m := &HookHolder{}
-			err := m.Unmarshal(val)
-			if err != nil {
-				return err
-			}
-			if !cb(m) {
-				exitLoop = true
-			}
-			return nil
-		})
-		if exitLoop {
-			break
-		}
-	}
-	iter.Close()
-	return nil
 }

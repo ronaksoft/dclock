@@ -223,16 +223,16 @@ func (sw *clockWrapper) hookDeleteWrapper(ctx *edge.RequestCtx, in *rony.Message
 	}
 }
 
-func (sw *clockWrapper) Register(e *edge.Server, ho *edge.HandlerOptions) {
-	e.SetHandlers(C_ClockHookSet, true, ho.ApplyTo(sw.hookSetWrapper)...)
-	e.SetHandlers(C_ClockHookDelete, true, ho.ApplyTo(sw.hookDeleteWrapper)...)
+func (sw *clockWrapper) Register(e *edge.Server, preHandlers ...edge.Handler) {
+	e.SetHandler(edge.NewHandlerOptions(C_ClockHookSet, sw.hookSetWrapper).Prepend(preHandlers...))
+	e.SetHandler(edge.NewHandlerOptions(C_ClockHookDelete, sw.hookDeleteWrapper).Prepend(preHandlers...))
 }
 
-func RegisterClock(h IClock, e *edge.Server, ho *edge.HandlerOptions) {
+func RegisterClock(h IClock, e *edge.Server, preHandlers ...edge.Handler) {
 	w := clockWrapper{
 		h: h,
 	}
-	w.Register(e, ho)
+	w.Register(e, preHandlers...)
 }
 
 func ExecuteRemoteClockHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetRequest, res *HookSetResponse, kvs ...*rony.KeyValue) error {

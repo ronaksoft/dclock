@@ -39,7 +39,7 @@ func NewClock(es *edge.Server) *Clock {
 func (c *Clock) HookSet(ctx *edge.RequestCtx, req *HookSetRequest, res *HookSetResponse) {
 	thisRS := ctx.Cluster().ReplicaSet()
 	pageID := crc32.ChecksumIEEE(req.GetUniqueID())
-	targetRS, err := ctx.GetReplica(pageID)
+	targetRS, err := ctx.FindReplicaSet(pageID)
 	if err != nil {
 		ctx.PushError(rony.ErrCodeInternal, err.Error())
 		return

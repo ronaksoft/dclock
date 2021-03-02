@@ -5,10 +5,8 @@ import (
 	"github.com/ronaksoft/dclock/model"
 	"github.com/ronaksoft/dclock/service"
 	"github.com/ronaksoft/rony"
-	"github.com/ronaksoft/rony/cluster"
 	"github.com/ronaksoft/rony/config"
 	"github.com/ronaksoft/rony/edge"
-	"github.com/ronaksoft/rony/gateway"
 	"github.com/ronaksoft/rony/store"
 	"github.com/ronaksoft/rony/tools"
 	"github.com/spf13/cobra"
@@ -52,7 +50,7 @@ var ServerCmd = &cobra.Command{
 				Concurrency:   runtime.NumCPU() * 100,
 				ListenAddress: config.GetString("gatewayListen"),
 				MaxIdleTime:   config.GetDuration("idleTime"),
-				Protocol:      gateway.Http,
+				Protocol:      edge.Http,
 				ExternalAddrs: config.GetStringSlice("gatewayAdvertiseUrl"),
 			}),
 			edge.WithGossipCluster(edge.GossipClusterConfig{
@@ -60,7 +58,7 @@ var ServerCmd = &cobra.Command{
 				Bootstrap:  config.GetBool("bootstrap"),
 				RaftPort:   config.GetInt("raftPort"),
 				ReplicaSet: config.GetUint64("replicaSet"),
-				Mode:       cluster.MultiReplica,
+				Mode:       edge.MultiReplica,
 				GossipPort: config.GetInt("gossipPort"),
 			}),
 			edge.WithUdpTunnel(edge.UdpTunnelConfig{
@@ -72,7 +70,7 @@ var ServerCmd = &cobra.Command{
 		)
 
 		// Register the service into the edge server
-		service.RegisterClock(service.NewClock(edgeServer), edgeServer, edge.NewHandlerOptions().SetPreHandlers(Authorize, Log))
+		service.RegisterClock(service.NewClock(edgeServer), edgeServer, Authorize, Log)
 
 		// Start the edge server components
 		edgeServer.Start()
