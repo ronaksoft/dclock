@@ -286,7 +286,7 @@ func IterHooks(txn *store.Txn, alloc *store.Allocator, cb func(m *Hook) bool) er
 
 	exitLoop := false
 	iterOpt := store.DefaultIteratorOptions
-	iterOpt.Prefix = alloc.GenKey('M', C_Hook, 3973050528)
+	iterOpt.Prefix = alloc.Gen('M', C_Hook, 3973050528)
 	iter := txn.NewIterator(iterOpt)
 	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -317,9 +317,9 @@ func ListHook(
 	res := make([]*Hook, 0, lo.Limit())
 	err := store.View(func(txn *store.Txn) error {
 		opt := store.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528)
+		opt.Prefix = alloc.Gen('M', C_Hook, 3973050528)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey('M', C_Hook, 3973050528, offsetClientID)
+		osk := alloc.Gen('M', C_Hook, 3973050528, offsetClientID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -356,7 +356,7 @@ func IterHookByClientID(txn *store.Txn, alloc *store.Allocator, clientID []byte,
 
 	exitLoop := false
 	opt := store.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
+	opt.Prefix = alloc.Gen('M', C_Hook, 3973050528, clientID)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -386,7 +386,7 @@ func IterHookByCallbackUrl(txn *store.Txn, alloc *store.Allocator, callbackUrl [
 
 	exitLoop := false
 	opt := store.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
+	opt.Prefix = alloc.Gen('M', C_Hook, 3467894716, callbackUrl)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -415,9 +415,9 @@ func ListHookByClientID(clientID []byte, offsetID []byte, lo *store.ListOption) 
 	res := make([]*Hook, 0, lo.Limit())
 	err := store.View(func(txn *store.Txn) error {
 		opt := store.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey('M', C_Hook, 3973050528, clientID)
+		opt.Prefix = alloc.Gen('M', C_Hook, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey('M', C_Hook, 3973050528, clientID, offsetID)
+		osk := alloc.Gen('M', C_Hook, 3973050528, clientID, offsetID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -451,9 +451,9 @@ func ListHookByCallbackUrl(callbackUrl []byte, offsetID []byte, lo *store.ListOp
 	res := make([]*Hook, 0, lo.Limit())
 	err := store.View(func(txn *store.Txn) error {
 		opt := store.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey('M', C_Hook, 3467894716, callbackUrl)
+		opt.Prefix = alloc.Gen('M', C_Hook, 3467894716, callbackUrl)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey('M', C_Hook, 3467894716, callbackUrl, offsetID)
+		osk := alloc.Gen('M', C_Hook, 3467894716, callbackUrl, offsetID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -612,7 +612,7 @@ func IterHookHolders(txn *store.Txn, alloc *store.Allocator, cb func(m *HookHold
 
 	exitLoop := false
 	iterOpt := store.DefaultIteratorOptions
-	iterOpt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528)
+	iterOpt.Prefix = alloc.Gen('M', C_HookHolder, 3973050528)
 	iter := txn.NewIterator(iterOpt)
 	for iter.Rewind(); iter.ValidForPrefix(iterOpt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -643,9 +643,9 @@ func ListHookHolder(
 	res := make([]*HookHolder, 0, lo.Limit())
 	err := store.View(func(txn *store.Txn) error {
 		opt := store.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528)
+		opt.Prefix = alloc.Gen('M', C_HookHolder, 3973050528)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey('M', C_HookHolder, 3973050528, offsetClientID)
+		osk := alloc.Gen('M', C_HookHolder, 3973050528, offsetClientID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()
@@ -682,7 +682,7 @@ func IterHookHolderByClientID(txn *store.Txn, alloc *store.Allocator, clientID [
 
 	exitLoop := false
 	opt := store.DefaultIteratorOptions
-	opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
+	opt.Prefix = alloc.Gen('M', C_HookHolder, 3973050528, clientID)
 	iter := txn.NewIterator(opt)
 	for iter.Rewind(); iter.ValidForPrefix(opt.Prefix); iter.Next() {
 		_ = iter.Item().Value(func(val []byte) error {
@@ -711,9 +711,9 @@ func ListHookHolderByClientID(clientID []byte, offsetID []byte, lo *store.ListOp
 	res := make([]*HookHolder, 0, lo.Limit())
 	err := store.View(func(txn *store.Txn) error {
 		opt := store.DefaultIteratorOptions
-		opt.Prefix = alloc.GenKey('M', C_HookHolder, 3973050528, clientID)
+		opt.Prefix = alloc.Gen('M', C_HookHolder, 3973050528, clientID)
 		opt.Reverse = lo.Backward()
-		osk := alloc.GenKey('M', C_HookHolder, 3973050528, clientID, offsetID)
+		osk := alloc.Gen('M', C_HookHolder, 3973050528, clientID, offsetID)
 		iter := txn.NewIterator(opt)
 		offset := lo.Skip()
 		limit := lo.Limit()

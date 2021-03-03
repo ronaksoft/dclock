@@ -271,6 +271,7 @@ github.com/kataras/golog v0.0.9/go.mod h1:12HJgwBIZFNGL0EJnMRhmvGA0PQGx8VFwrZtM4
 github.com/kataras/golog v0.0.10/go.mod h1:yJ8YKCmyL+nWjERB90Qwn+bdyBZsaQwU3bTVFgkFIp8=
 github.com/kataras/iris/v12 v12.0.1/go.mod h1:udK4vLQKkdDqMGJJVd/msuMtN6hpYJhg/lSzuxjhO+U=
 github.com/kataras/iris/v12 v12.1.8/go.mod h1:LMYy4VlP67TQ3Zgriz8RE2h2kMZV2SgMYbq3UhfoFmE=
+github.com/kataras/muxie v1.1.2/go.mod h1:xvAGGV93oksm/i9OBHyHqbiwUk1OenPd5CllnuO5lNU=
 github.com/kataras/neffos v0.0.10/go.mod h1:ZYmJC07hQPW67eKuzlfY7SO3bC0mw83A3j6im82hfqw=
 github.com/kataras/neffos v0.0.14/go.mod h1:8lqADm8PnbeFfL7CLXh1WHw53dG27MC3pgi2R1rmoTE=
 github.com/kataras/pio v0.0.0-20190103105442-ea782b38602d/go.mod h1:NV88laa9UiiDuX9AhMbDPkGYSPugBOV6yTZB1l2K9Z0=
@@ -439,6 +440,8 @@ github.com/ronaksoft/rony v0.5.6 h1:GU7n+35PE+zw7oWGwahLM9G13vCbkbWLZvt0IDXaazQ=
 github.com/ronaksoft/rony v0.5.6/go.mod h1:Nq8Bsqgbn9peZNEzbUh4zcEpt0HyuFsPJJq5jd3rtIo=
 github.com/ronaksoft/rony v0.5.29 h1:mwRSjGkxne7SGs7PhFiUkykzlUw4rJeIESgByH0ptVw=
 github.com/ronaksoft/rony v0.5.29/go.mod h1:Kas8fasNOSoBU78xBF0aY8Kz/8eUcpcS4iDgOHM5e24=
+github.com/ronaksoft/rony v0.6.1 h1:R7/Yv679qBSVYuihTn2YOrIlTOj3Dq90OhsYV6miN3o=
+github.com/ronaksoft/rony v0.6.1/go.mod h1:Q77fexZdvEDBOod64eVEPRC6hAPWxw7zm4j8ASYW9FI=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
