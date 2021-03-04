@@ -17,14 +17,15 @@ this brings up the second server and joins the first bootstrap server
  --join 127.0.0.1:7081` <br />
 this brings up the third server and joins the cluster
 
-> STEP 4. Go to [https://webhook.site] and copy a webhook address for test
+> STEP 4. Go to [https://webhook.site] and copy a webhook address for test <br/>
+
 > STEP 5. Run the client: <br />
 ` cli-dclock client --hostPort 127.0.0.1:83` <br/>
 you can connect to any of the three servers by choosing ports 81, 82 or 83. 
 
 > STEP 6. In the interactive shell, you can set a hook. <br />
 ` hook-set --uniqueID SOME_UNIQUE --timestamp 10 --hookUrl <YOUR-WEBHOOK>` <br />
-this command with setup a hook to be triggered in next 10s. You can check it on your webhook.com panel.
+this command with setup a hook to be triggered in next 10s. You can check it on your webhook.site panel.
 
 ### Again, this is not a real project. Only to demonstrate how to write a distributed service using Rony framework.
 
