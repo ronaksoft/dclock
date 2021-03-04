@@ -17,7 +17,7 @@ this brings up the second server and joins the first bootstrap server
  --join 127.0.0.1:7081` <br />
 this brings up the third server and joins the cluster
 
-> STEP 4. Go to [https://webhook.com] and copy a webhook address for test
+> STEP 4. Go to [https://webhook.site] and copy a webhook address for test
 > STEP 5. Run the client: <br />
 ` cli-dclock client --hostPort 127.0.0.1:83` <br/>
 you can connect to any of the three servers by choosing ports 81, 82 or 83. 
