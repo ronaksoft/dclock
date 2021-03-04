@@ -11,7 +11,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/nyaruka/phonenumbers v1.0.65 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/ronaksoft/rony v0.6.6
+	github.com/ronaksoft/rony v0.6.7
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.1.1
 	github.com/valyala/fasthttp v1.21.0
