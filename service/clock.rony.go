@@ -29,6 +29,9 @@ func (p *poolHookSetRequest) Get() *HookSetRequest {
 }
 
 func (p *poolHookSetRequest) Put(x *HookSetRequest) {
+	if x == nil {
+		return
+	}
 	x.UniqueID = x.UniqueID[:0]
 	x.Timestamp = 0
 	x.HookUrl = x.HookUrl[:0]
@@ -72,6 +75,9 @@ func (p *poolHookSetResponse) Get() *HookSetResponse {
 }
 
 func (p *poolHookSetResponse) Put(x *HookSetResponse) {
+	if x == nil {
+		return
+	}
 	x.Successful = false
 	p.pool.Put(x)
 }
@@ -109,6 +115,9 @@ func (p *poolHookDeleteRequest) Get() *HookDeleteRequest {
 }
 
 func (p *poolHookDeleteRequest) Put(x *HookDeleteRequest) {
+	if x == nil {
+		return
+	}
 	x.UniqueID = x.UniqueID[:0]
 	p.pool.Put(x)
 }
@@ -146,6 +155,9 @@ func (p *poolHookDeleteResponse) Get() *HookDeleteResponse {
 }
 
 func (p *poolHookDeleteResponse) Put(x *HookDeleteResponse) {
+	if x == nil {
+		return
+	}
 	x.Successful = false
 	p.pool.Put(x)
 }
@@ -223,16 +235,31 @@ func (sw *clockWrapper) hookDeleteWrapper(ctx *edge.RequestCtx, in *rony.Message
 	}
 }
 
-func (sw *clockWrapper) Register(e *edge.Server, preHandlers ...edge.Handler) {
-	e.SetHandler(edge.NewHandlerOptions(C_ClockHookSet, sw.hookSetWrapper).Prepend(preHandlers...))
-	e.SetHandler(edge.NewHandlerOptions(C_ClockHookDelete, sw.hookDeleteWrapper).Prepend(preHandlers...))
+func (sw *clockWrapper) Register(e *edge.Server, handlerFunc func(c int64) []edge.Handler) {
+	if handlerFunc == nil {
+		handlerFunc = func(c int64) []edge.Handler {
+			return nil
+		}
+	}
+
+	e.SetHandler(edge.NewHandlerOptions().SetConstructor(C_ClockHookSet).SetHandler(handlerFunc(C_ClockHookSet)...).Append(sw.hookSetWrapper))
+	e.SetHandler(edge.NewHandlerOptions().SetConstructor(C_ClockHookDelete).SetHandler(handlerFunc(C_ClockHookDelete)...).Append(sw.hookDeleteWrapper))
 }
 
 func RegisterClock(h IClock, e *edge.Server, preHandlers ...edge.Handler) {
 	w := clockWrapper{
 		h: h,
 	}
-	w.Register(e, preHandlers...)
+	w.Register(e, func(c int64) []edge.Handler {
+		return preHandlers
+	})
+}
+
+func RegisterClockWithFunc(h IClock, e *edge.Server, handlerFunc func(c int64) []edge.Handler) {
+	w := clockWrapper{
+		h: h,
+	}
+	w.Register(e, handlerFunc)
 }
 
 func ExecuteRemoteClockHookSet(ctx *edge.RequestCtx, replicaSet uint64, req *HookSetRequest, res *HookSetResponse, kvs ...*rony.KeyValue) error {

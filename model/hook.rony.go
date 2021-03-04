@@ -25,6 +25,9 @@ func (p *poolHook) Get() *Hook {
 }
 
 func (p *poolHook) Put(x *Hook) {
+	if x == nil {
+		return
+	}
 	x.ClientID = x.ClientID[:0]
 	x.ID = x.ID[:0]
 	x.Timestamp = 0
@@ -74,12 +77,13 @@ func (p *poolHookHolder) Get() *HookHolder {
 }
 
 func (p *poolHookHolder) Put(x *HookHolder) {
+	if x == nil {
+		return
+	}
 	x.ClientID = x.ClientID[:0]
 	x.ID = x.ID[:0]
-	if x.Hook != nil {
-		PoolHook.Put(x.Hook)
-		x.Hook = nil
-	}
+	PoolHook.Put(x.Hook)
+	x.Hook = nil
 	p.pool.Put(x)
 }
 
